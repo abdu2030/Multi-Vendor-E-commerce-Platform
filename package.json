@@ -1,0 +1,23 @@
+{
+  "name": "multi-vendor-ecommerce-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Production-style multi-vendor marketplace based on the provided SRS.",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css,prisma}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
