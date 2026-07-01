@@ -2,9 +2,9 @@
 
 Setup checkpoint for the SRS-driven project.
 
-The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-3 foundation only. We will build the rest step by step from the SRS when assigned.
+The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-5 foundation only. We will build the rest step by step from the SRS when assigned.
 
-## Current Scope: Week 1 Day 1-3
+## Current Scope: Week 1 Day 1-5
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -14,6 +14,10 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Basic folder structure for future modules
 - Prisma PostgreSQL datasource and initial schema
 - API configuration, health, validation, error, and response foundations
+- AuthModule with register, login, access token, refresh token storage, and logout
+- Role metadata and guards
+- Admin seed script
+- Protected profile and `/me` endpoints
 
 ## Ground Rules
 
@@ -44,7 +48,7 @@ apps/
 
 Project dependencies are installed locally and `package-lock.json` is present. The temporary npm cache is ignored by Git.
 
-Week 1 Day 2 and Day 3 foundation items are now configured:
+Week 1 Day 2 through Day 5 foundation items are now configured:
 
 - Prisma and PostgreSQL datasource setup
 - Initial SRS-aligned Prisma schema
@@ -54,6 +58,21 @@ Week 1 Day 2 and Day 3 foundation items are now configured:
 - Global validation pipe
 - Global exception filter
 - Consistent API response wrapper
+- Password hashing with Node scrypt
+- JWT access token signing and verification
+- Refresh token persistence in PostgreSQL
+- Admin user seeding from environment variables
+
+## API Auth Endpoints
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/refresh
+POST /api/auth/logout
+GET  /api/auth/me
+GET  /api/users/profile
+```
 
 ## Next Step
 
@@ -62,6 +81,7 @@ Add a Neon or Supabase PostgreSQL URL to `apps/api/.env`, then run:
 ```bash
 npm run prisma:generate -w apps/api
 npm run prisma:migrate -w apps/api
+npm run seed:admin -w apps/api
 npm run build -w apps/api
 ```
 

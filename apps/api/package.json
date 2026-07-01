@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json --incremental false",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed:admin": "node prisma/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
