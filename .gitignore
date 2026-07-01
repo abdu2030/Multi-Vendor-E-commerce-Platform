@@ -9,5 +9,6 @@ coverage
 .env.*
 !.env.example
 *.log
+*.tsbuildinfo
 uploads
 prisma/dev.db

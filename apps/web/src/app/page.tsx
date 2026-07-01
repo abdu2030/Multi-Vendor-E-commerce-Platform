@@ -1,11 +1,23 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px" }}>
-      <p style={{ fontWeight: 700, color: "#1f9d72" }}>Week 1 Day 1 Setup</p>
-      <h1>MultiVendor Marketplace</h1>
-      <p>
-        Frontend scaffold is ready. We will build the SRS features one assignment at a time.
-      </p>
+    <main className="home-page">
+      <section className="home-panel">
+        <p className="eyebrow">Marketplace workspace</p>
+        <h1>MultiVendor Marketplace</h1>
+        <p>
+          Sign in to continue to your protected dashboard, or create a buyer account to begin.
+        </p>
+        <div className="button-row">
+          <Link className="primary-button" href="/login">
+            Login
+          </Link>
+          <Link className="secondary-button" href="/register">
+            Register
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

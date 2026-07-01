@@ -2,9 +2,9 @@
 
 Setup checkpoint for the SRS-driven project.
 
-The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-5 foundation only. We will build the rest step by step from the SRS when assigned.
+The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-6 foundation only. We will build the rest step by step from the SRS when assigned.
 
-## Current Scope: Week 1 Day 1-5
+## Current Scope: Week 1 Day 1-6
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -18,6 +18,9 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Role metadata and guards
 - Admin seed script
 - Protected profile and `/me` endpoints
+- Frontend login/register pages
+- Frontend auth state management
+- Protected dashboard layout
 
 ## Ground Rules
 
@@ -62,6 +65,8 @@ Week 1 Day 2 through Day 5 foundation items are now configured:
 - JWT access token signing and verification
 - Refresh token persistence in PostgreSQL
 - Admin user seeding from environment variables
+- Frontend auth session persistence in local storage
+- Protected dashboard redirect flow
 
 ## API Auth Endpoints
 
@@ -72,6 +77,15 @@ POST /api/auth/refresh
 POST /api/auth/logout
 GET  /api/auth/me
 GET  /api/users/profile
+```
+
+## Frontend Auth Routes
+
+```text
+GET /login
+GET /register
+GET /dashboard
+GET /dashboard/profile
 ```
 
 ## Next Step
