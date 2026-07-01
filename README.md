@@ -13,49 +13,6 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Environment example files
 - Basic folder structure for future modules
 
-## Current Assignment Additions
-
-- Day 2: Seller application frontend form with validation
-- Day 2: Seller application pending status page
-- Day 3: Admin seller approval APIs for pending list, approve, reject, and suspend
-- Day 4: Admin seller approval UI table with approve, reject, and suspend decision modal
-- Day 5: Seller dashboard shell with sidebar, overview cards, store status, and store settings form
-
-## Local API Notes
-
-Until JWT authentication is assigned, admin seller approval endpoints use a temporary development guard:
-
-```text
-x-user-role: admin
-```
-
-Example endpoints:
-
-```text
-POST  /api/sellers/apply
-GET   /api/admin/sellers/pending
-PATCH /api/admin/sellers/:id/approve
-PATCH /api/admin/sellers/:id/reject
-PATCH /api/admin/sellers/:id/suspend
-```
-
-Reject and suspend requests require a JSON body:
-
-```json
-{
-  "reason": "Application needs clearer business details."
-}
-```
-
-Frontend routes:
-
-```text
-/seller/apply
-/seller/application/pending
-/admin/sellers
-/seller/dashboard
-```
-
 ## Ground Rules
 
 - The SRS is the source of truth.
@@ -81,6 +38,10 @@ apps/
       lib/
 ```
 
+## Dependencies
+
+Project dependencies are installed locally and `package-lock.json` is present. The temporary npm cache was removed after installation.
+
 ## Next Step
 
-When you are ready, we can test this setup locally by installing dependencies once, then running the API and web dev servers. After that, we continue with Week 1 Day 2 only.
+When you are ready, we can test this setup locally, then continue with the correct Week 1 roadmap task.

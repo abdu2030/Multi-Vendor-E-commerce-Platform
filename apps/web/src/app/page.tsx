@@ -4,11 +4,8 @@ export default function HomePage() {
       <p style={{ fontWeight: 700, color: "#1f9d72" }}>Week 1 Day 1 Setup</p>
       <h1>MultiVendor Marketplace</h1>
       <p>
-        Frontend scaffold is ready. The seller application form and pending status page are now available for the current assignment.
+        Frontend scaffold is ready. We will build the SRS features one assignment at a time.
       </p>
-      <a href="/seller/apply" style={{ color: "#2563eb", fontWeight: 700 }}>
-        Apply to become a seller
-      </a>
     </main>
   );
 }
