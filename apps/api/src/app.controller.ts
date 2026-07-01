@@ -6,7 +6,8 @@ export class AppController {
   health() {
     return {
       status: "ok",
-      service: "multi-vendor-ecommerce-api"
+      service: "multi-vendor-ecommerce-api",
+      checkedAt: new Date().toISOString()
     };
   }
 }

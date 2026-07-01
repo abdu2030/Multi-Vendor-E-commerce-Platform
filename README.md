@@ -1,10 +1,10 @@
 # Multi-Vendor E-commerce Platform
 
-Setup-only checkpoint for the SRS-driven project.
+Setup checkpoint for the SRS-driven project.
 
-The GitHub repository was empty, so this workspace now contains the Week 1 Day 1 monorepo scaffold only. We will build the rest step by step from the SRS when assigned.
+The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-3 foundation only. We will build the rest step by step from the SRS when assigned.
 
-## Current Scope: Week 1 Day 1
+## Current Scope: Week 1 Day 1-3
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -12,6 +12,8 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Shared root workspace scripts
 - Environment example files
 - Basic folder structure for future modules
+- Prisma PostgreSQL datasource and initial schema
+- API configuration, health, validation, error, and response foundations
 
 ## Ground Rules
 
@@ -38,10 +40,29 @@ apps/
       lib/
 ```
 
-## Dependencies
+## Dependencies and Database Foundation
 
-Project dependencies are installed locally and `package-lock.json` is present. The temporary npm cache was removed after installation.
+Project dependencies are installed locally and `package-lock.json` is present. The temporary npm cache is ignored by Git.
+
+Week 1 Day 2 and Day 3 foundation items are now configured:
+
+- Prisma and PostgreSQL datasource setup
+- Initial SRS-aligned Prisma schema
+- ConfigModule environment validation
+- PrismaModule and PrismaService
+- Health check endpoint at `GET /api/health`
+- Global validation pipe
+- Global exception filter
+- Consistent API response wrapper
 
 ## Next Step
 
-When you are ready, we can test this setup locally, then continue with the correct Week 1 roadmap task.
+Add a Neon or Supabase PostgreSQL URL to `apps/api/.env`, then run:
+
+```bash
+npm run prisma:generate -w apps/api
+npm run prisma:migrate -w apps/api
+npm run build -w apps/api
+```
+
+When those pass, continue with the next correct Week 1 roadmap task.

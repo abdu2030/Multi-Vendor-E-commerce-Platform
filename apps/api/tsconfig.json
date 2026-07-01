@@ -15,7 +15,8 @@
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"]
 }
