@@ -18,6 +18,8 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Day 2: Seller application frontend form with validation
 - Day 2: Seller application pending status page
 - Day 3: Admin seller approval APIs for pending list, approve, reject, and suspend
+- Day 4: Admin seller approval UI table with approve, reject, and suspend decision modal
+- Day 5: Seller dashboard shell with sidebar, overview cards, store status, and store settings form
 
 ## Local API Notes
 
@@ -43,6 +45,15 @@ Reject and suspend requests require a JSON body:
 {
   "reason": "Application needs clearer business details."
 }
+```
+
+Frontend routes:
+
+```text
+/seller/apply
+/seller/application/pending
+/admin/sellers
+/seller/dashboard
 ```
 
 ## Ground Rules
