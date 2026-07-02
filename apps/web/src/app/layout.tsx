@@ -1,6 +1,6 @@
+import "./globals.css";
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MultiVendor Marketplace",

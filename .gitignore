@@ -5,6 +5,7 @@ coverage
 .turbo
 .npm-cache
 .srs-tools
+.design-import
 .env
 .env.*
 !.env.example

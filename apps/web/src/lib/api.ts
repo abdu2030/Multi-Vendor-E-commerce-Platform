@@ -24,6 +24,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers
+  }).catch(() => {
+    throw new Error("API server is not reachable. Start the backend on http://localhost:5000 and try again.");
   });
   const payload = (await response.json().catch(() => ({}))) as ApiResult<T>;
 

@@ -38,7 +38,7 @@ Recommended local values:
 
 ```text
 PORT=5000
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
 JWT_ACCESS_TOKEN_TTL_SECONDS=900
 JWT_REFRESH_TOKEN_TTL_DAYS=30
 ```
