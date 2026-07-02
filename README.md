@@ -1,10 +1,10 @@
 # Multi-Vendor E-commerce Platform
 
-Setup checkpoint for the SRS-driven project.
+Production-style multi-vendor marketplace built step by step from the provided SRS.
 
-The GitHub repository was empty, so this workspace now contains the Week 1 Day 1-6 foundation only. We will build the rest step by step from the SRS when assigned.
+The project currently contains the Week 1 Day 1-7 foundation. Future work should continue one assigned day/module at a time.
 
-## Current Scope: Week 1 Day 1-6
+## Current Scope: Week 1 Day 1-7
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -21,6 +21,8 @@ The GitHub repository was empty, so this workspace now contains the Week 1 Day 1
 - Frontend login/register pages
 - Frontend auth state management
 - Protected dashboard layout
+- Auth flow tested end-to-end against PostgreSQL
+- Initial environment setup guide
 
 ## Ground Rules
 
@@ -45,32 +47,33 @@ apps/
       app/
       components/
       lib/
+docs/
+  environment-setup.md
 ```
 
-## Dependencies and Database Foundation
+## Setup
 
-Project dependencies are installed locally and `package-lock.json` is present. The temporary npm cache is ignored by Git.
+See [Environment Setup](docs/environment-setup.md) for full local setup, database, migration, seed, and test instructions.
 
-Week 1 Day 2 through Day 5 foundation items are now configured:
+Quick start:
 
-- Prisma and PostgreSQL datasource setup
-- Initial SRS-aligned Prisma schema
-- ConfigModule environment validation
-- PrismaModule and PrismaService
-- Health check endpoint at `GET /api/health`
-- Global validation pipe
-- Global exception filter
-- Consistent API response wrapper
-- Password hashing with Node scrypt
-- JWT access token signing and verification
-- Refresh token persistence in PostgreSQL
-- Admin user seeding from environment variables
-- Frontend auth session persistence in local storage
-- Protected dashboard redirect flow
+```bash
+npm install
+copy apps\api\.env.example apps\api\.env
+copy apps\web\.env.example apps\web\.env
+npm run prisma:generate -w apps/api
+npm run prisma:deploy -w apps/api
+npm run seed:admin -w apps/api
+npm run build -w apps/api
+npm run build -w apps/web
+```
+
+For Neon on Windows, the API uses Prisma's PostgreSQL driver adapter so runtime queries use Node's TLS stack.
 
 ## API Auth Endpoints
 
 ```text
+GET  /api/health
 POST /api/auth/register
 POST /api/auth/login
 POST /api/auth/refresh
@@ -88,15 +91,21 @@ GET /dashboard
 GET /dashboard/profile
 ```
 
-## Next Step
+## Day 7 Verification
 
-Add a Neon or Supabase PostgreSQL URL to `apps/api/.env`, then run:
+The auth flow was tested end-to-end against the configured PostgreSQL database:
 
-```bash
-npm run prisma:generate -w apps/api
-npm run prisma:migrate -w apps/api
-npm run seed:admin -w apps/api
-npm run build -w apps/api
+```text
+health -> register -> /auth/me -> /users/profile -> login -> refresh -> logout -> invalid login validation
 ```
 
-When those pass, continue with the next correct Week 1 roadmap task.
+Both builds now pass:
+
+```bash
+npm run build -w apps/api
+npm run build -w apps/web
+```
+
+## Next Step
+
+Continue with the next correct Week 1 roadmap task from the SRS.
