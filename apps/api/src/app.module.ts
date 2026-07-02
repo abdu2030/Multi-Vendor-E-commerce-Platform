@@ -6,6 +6,7 @@ import { AdminSellerApplicationsModule } from "./modules/admin-seller-applicatio
 import { AuthModule } from "./modules/auth/auth.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
+import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
 import { UsersModule } from "./modules/users/users.module";
 
 @Module({
@@ -18,6 +19,7 @@ import { UsersModule } from "./modules/users/users.module";
     AuthModule,
     AdminSellerApplicationsModule,
     SellerApplicationsModule,
+    SellerDashboardModule,
     UsersModule
   ],
   controllers: [AppController]

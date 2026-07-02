@@ -89,6 +89,9 @@ GET  /api/admin/seller-applications/pending
 PATCH /api/admin/seller-applications/:id/approve
 PATCH /api/admin/seller-applications/:id/reject
 PATCH /api/admin/seller-applications/:id/suspend
+GET  /api/seller/dashboard
+GET  /api/seller/store/settings
+PATCH /api/seller/store/settings
 ```
 
 ## Frontend Auth Routes
@@ -98,8 +101,10 @@ GET /login
 GET /register
 GET /dashboard
 GET /dashboard/profile
+GET /dashboard/seller
 GET /dashboard/seller/apply
 GET /dashboard/seller/status
+GET /dashboard/seller/settings
 GET /dashboard/admin/seller-applications
 ```
 

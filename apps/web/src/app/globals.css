@@ -210,6 +210,15 @@ textarea {
   padding: 10px 12px;
 }
 
+.form-success {
+  background: #e9f5ef;
+  border: 1px solid #b9dacb;
+  border-radius: 6px;
+  color: #176145;
+  margin: 0;
+  padding: 10px 12px;
+}
+
 .auth-footer {
   border-top: 1px solid #edf0eb;
   margin-top: 24px;
@@ -324,6 +333,40 @@ textarea {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.seller-workspace {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.seller-sidebar {
+  background: #ffffff;
+  border: 1px solid #dfe5dc;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.seller-sidebar nav {
+  display: grid;
+  gap: 8px;
+}
+
+.seller-content {
+  min-width: 0;
+}
+
+.seller-overview {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.store-status-panel {
+  grid-column: 1 / -1;
+  margin-top: 0;
 }
 
 .status-panel,
@@ -537,6 +580,11 @@ textarea {
   }
 
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seller-workspace,
+  .seller-overview {
     grid-template-columns: 1fr;
   }
 

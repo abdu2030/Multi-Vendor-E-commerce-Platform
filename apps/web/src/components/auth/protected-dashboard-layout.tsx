@@ -8,6 +8,7 @@ import { useAuth } from "./auth-provider";
 const navigation = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/profile", label: "Profile" },
+  { href: "/dashboard/seller", label: "Seller dashboard", roles: ["SELLER"] },
   { href: "/dashboard/seller/apply", label: "Seller application" },
   { href: "/dashboard/seller/status", label: "Application status" },
   { href: "/dashboard/admin/seller-applications", label: "Seller approvals", roles: ["ADMIN"] }
