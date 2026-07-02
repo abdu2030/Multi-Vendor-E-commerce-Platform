@@ -1,5 +1,5 @@
-import { ImportedAdminDashboard } from "@/components/imported/landing-admin-design";
+import { AdminSellerApprovalTable } from "@/components/admin/admin-seller-approval-table";
 
 export default function AdminSellerApplicationsPage() {
-  return <ImportedAdminDashboard />;
+  return <AdminSellerApprovalTable />;
 }

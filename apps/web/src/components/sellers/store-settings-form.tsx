@@ -1,12 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { BadgeCheck, Save } from "@/components/imported/design-icons";
 import {
-  getStoreSettings,
   SellerStoreSettings,
   StoreSettingsInput,
-  updateStoreSettings
+  getStoreSettings,
+  updateStoreSettings,
 } from "@/lib/seller-dashboard";
 
 type FormState = {
@@ -24,7 +25,7 @@ const emptyForm: FormState = {
   phone: "",
   bio: "",
   logoUrl: "",
-  bannerUrl: ""
+  bannerUrl: "",
 };
 
 export function StoreSettingsForm() {
@@ -50,11 +51,15 @@ export function StoreSettingsForm() {
           phone: data.sellerProfile.phone ?? "",
           bio: data.sellerProfile.bio ?? "",
           logoUrl: data.store.logoUrl ?? "",
-          bannerUrl: data.store.bannerUrl ?? ""
+          bannerUrl: data.store.bannerUrl ?? "",
         });
       })
       .catch((caughtError) => {
-        setError(caughtError instanceof Error ? caughtError.message : "Store settings could not load.");
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Store settings could not load.",
+        );
       })
       .finally(() => setIsLoading(false));
   }, [accessToken]);
@@ -86,7 +91,7 @@ export function StoreSettingsForm() {
       phone: form.phone.trim() || undefined,
       bio: form.bio.trim() || undefined,
       logoUrl: form.logoUrl.trim() || undefined,
-      bannerUrl: form.bannerUrl.trim() || undefined
+      bannerUrl: form.bannerUrl.trim() || undefined,
     };
 
     setIsSubmitting(true);
@@ -96,82 +101,125 @@ export function StoreSettingsForm() {
       setSettings(updated);
       setSuccess("Store settings saved.");
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Store settings could not be saved.");
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Store settings could not be saved.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (isLoading) {
-    return <p className="muted-text">Loading store settings...</p>;
+    return (
+      <p className="rounded-2xl border border-stone-200 bg-white p-5 text-sm font-bold text-stone-500 shadow-sm">
+        Loading store settings...
+      </p>
+    );
   }
 
   if (!settings && error) {
-    return <p className="form-error">{error}</p>;
+    return (
+      <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        {error}
+      </p>
+    );
   }
 
   return (
-    <form className="seller-form" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          <span>Store name</span>
+    <form className="grid gap-5" onSubmit={handleSubmit}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Store name">
           <input
+            className={inputClass}
             onChange={(event) => updateField("name", event.target.value)}
             type="text"
             value={form.name}
           />
-        </label>
-        <label>
-          <span>Seller phone</span>
+        </Field>
+        <Field label="Seller phone">
           <input
+            className={inputClass}
             onChange={(event) => updateField("phone", event.target.value)}
             type="tel"
             value={form.phone}
           />
-        </label>
+        </Field>
       </div>
-      <label>
-        <span>Store description</span>
+
+      <Field label="Store description">
         <textarea
+          className={`${inputClass} min-h-36 py-3 leading-relaxed`}
           onChange={(event) => updateField("description", event.target.value)}
           rows={5}
           value={form.description}
         />
-      </label>
-      <label>
-        <span>Seller bio</span>
+      </Field>
+
+      <Field label="Seller bio">
         <textarea
+          className={`${inputClass} min-h-28 py-3 leading-relaxed`}
           onChange={(event) => updateField("bio", event.target.value)}
           rows={3}
           value={form.bio}
         />
-      </label>
-      <div className="form-grid">
-        <label>
-          <span>Logo URL</span>
+      </Field>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Logo URL">
           <input
+            className={inputClass}
             onChange={(event) => updateField("logoUrl", event.target.value)}
             type="url"
             value={form.logoUrl}
           />
-        </label>
-        <label>
-          <span>Banner URL</span>
+        </Field>
+        <Field label="Banner URL">
           <input
+            className={inputClass}
             onChange={(event) => updateField("bannerUrl", event.target.value)}
             type="url"
             value={form.bannerUrl}
           />
-        </label>
+        </Field>
       </div>
-      {error ? <p className="form-error">{error}</p> : null}
-      {success ? <p className="form-success">{success}</p> : null}
-      <button className="primary-button" disabled={isSubmitting} type="submit">
+
+      {error ? (
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <BadgeCheck className="h-4 w-4" />
+          {success}
+        </p>
+      ) : null}
+
+      <button
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+        disabled={isSubmitting}
+        type="submit"
+      >
+        <Save className="h-4 w-4" />
         {isSubmitting ? "Saving..." : "Save settings"}
       </button>
     </form>
   );
 }
+
+function Field({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-sm font-bold text-stone-700">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass =
+  "w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 min-h-12";
 
 function validateStoreSettings(form: FormState) {
   if (form.name.trim().length < 3) {
@@ -188,7 +236,7 @@ function validateStoreSettings(form: FormState) {
 
   for (const [label, value] of [
     ["Logo URL", form.logoUrl],
-    ["Banner URL", form.bannerUrl]
+    ["Banner URL", form.bannerUrl],
   ] as const) {
     if (!value.trim()) {
       continue;

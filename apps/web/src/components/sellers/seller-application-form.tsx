@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ArrowRight, Shield } from "@/components/imported/design-icons";
 import { createSellerApplication } from "@/lib/seller-applications";
 
 type FormState = {
@@ -18,7 +19,7 @@ const initialState: FormState = {
   storeDescription: "",
   phone: "",
   address: "",
-  businessDocument: ""
+  businessDocument: "",
 };
 
 export function SellerApplicationForm() {
@@ -57,14 +58,16 @@ export function SellerApplicationForm() {
           storeDescription: form.storeDescription.trim(),
           phone: form.phone.trim(),
           address: form.address.trim(),
-          businessDocument: form.businessDocument.trim() || undefined
+          businessDocument: form.businessDocument.trim() || undefined,
         },
-        accessToken
+        accessToken,
       );
       router.replace("/dashboard/seller/status");
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error ? caughtError.message : "Seller application could not be submitted."
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Seller application could not be submitted.",
       );
     } finally {
       setIsSubmitting(false);
@@ -72,66 +75,109 @@ export function SellerApplicationForm() {
   }
 
   return (
-    <form className="seller-form" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          <span>Store name</span>
+    <form className="grid gap-5" onSubmit={handleSubmit}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Store name">
           <input
+            className={inputClass}
             name="storeName"
             onChange={(event) => updateField("storeName", event.target.value)}
             placeholder="Example Market"
             type="text"
             value={form.storeName}
           />
-        </label>
-        <label>
-          <span>Business phone</span>
+        </Field>
+        <Field label="Business phone">
           <input
+            className={inputClass}
             name="phone"
             onChange={(event) => updateField("phone", event.target.value)}
             placeholder="+1 555 000 0000"
             type="tel"
             value={form.phone}
           />
-        </label>
+        </Field>
       </div>
-      <label>
-        <span>Store description</span>
+
+      <Field label="Store description">
         <textarea
+          className={`${inputClass} min-h-36 py-3 leading-relaxed`}
           name="storeDescription"
-          onChange={(event) => updateField("storeDescription", event.target.value)}
+          onChange={(event) =>
+            updateField("storeDescription", event.target.value)
+          }
           placeholder="Tell us what you sell, who you serve, and what makes your store reliable."
           rows={5}
           value={form.storeDescription}
         />
-      </label>
-      <label>
-        <span>Business address</span>
+      </Field>
+
+      <Field label="Business address">
         <textarea
+          className={`${inputClass} min-h-28 py-3 leading-relaxed`}
           name="address"
           onChange={(event) => updateField("address", event.target.value)}
           placeholder="Street, city, region, country"
           rows={3}
           value={form.address}
         />
-      </label>
-      <label>
-        <span>Business document URL</span>
+      </Field>
+
+      <Field label="Business document URL">
         <input
+          className={inputClass}
           name="businessDocument"
-          onChange={(event) => updateField("businessDocument", event.target.value)}
+          onChange={(event) =>
+            updateField("businessDocument", event.target.value)
+          }
           placeholder="https://example.com/document.pdf"
           type="url"
           value={form.businessDocument}
         />
-      </label>
-      {error ? <p className="form-error">{error}</p> : null}
-      <button className="primary-button" disabled={isSubmitting} type="submit">
+      </Field>
+
+      <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <p>
+          Your store remains pending until an admin reviews the application.
+        </p>
+      </div>
+
+      {error ? (
+        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {error}
+        </p>
+      ) : null}
+
+      <button
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+        disabled={isSubmitting}
+        type="submit"
+      >
         {isSubmitting ? "Submitting..." : "Submit application"}
+        <ArrowRight className="h-4 w-4" />
       </button>
     </form>
   );
 }
+
+function Field({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-sm font-bold text-stone-700">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass =
+  "w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 min-h-12";
 
 function validateSellerApplication(form: FormState) {
   if (form.storeName.trim().length < 3) {
