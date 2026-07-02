@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type React from "react";
 import {
@@ -1891,12 +1892,12 @@ export function ImportedLandingPage() {
                   {l}
                 </a>
               ))}
-              <a
-                href="#"
+              <Link
+                href="/dashboard/seller/apply"
                 className="text-sm font-bold text-emerald-700 hover:text-emerald-900 transition-colors"
               >
                 Become a seller
-              </a>
+              </Link>
             </nav>
             <div className="flex items-center gap-2">
               <button
@@ -1908,9 +1909,12 @@ export function ImportedLandingPage() {
                   2
                 </span>
               </button>
-              <button className="hidden md:block text-sm font-semibold bg-stone-900 hover:bg-stone-700 text-white px-4 py-2 rounded-xl transition-colors">
+              <Link
+                href="/login"
+                className="hidden md:block text-sm font-semibold bg-stone-900 hover:bg-stone-700 text-white px-4 py-2 rounded-xl transition-colors"
+              >
                 Sign in
-              </button>
+              </Link>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="md:hidden p-2 hover:bg-stone-100 rounded-xl transition-colors"
@@ -1942,12 +1946,20 @@ export function ImportedLandingPage() {
                 {l}
               </a>
             ))}
-            <a href="#" className="text-sm font-bold text-emerald-700 py-1.5">
+            <Link
+              href="/dashboard/seller/apply"
+              className="text-sm font-bold text-emerald-700 py-1.5"
+              onClick={() => setMenuOpen(false)}
+            >
               Become a seller
-            </a>
-            <button className="text-sm font-semibold bg-stone-900 text-white px-4 py-2.5 rounded-xl mt-1">
+            </Link>
+            <Link
+              href="/login"
+              className="text-sm font-semibold bg-stone-900 text-white px-4 py-2.5 rounded-xl mt-1"
+              onClick={() => setMenuOpen(false)}
+            >
               Sign in
-            </button>
+            </Link>
           </div>
         )}
       </header>
@@ -1998,12 +2010,18 @@ export function ImportedLandingPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-3 pt-1">
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl transition-colors shadow-sm text-sm">
+              <a
+                href="#featured-products"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl transition-colors shadow-sm text-sm"
+              >
                 Start shopping
-              </button>
-              <button className="bg-white border border-stone-200 hover:border-stone-300 text-stone-800 font-bold px-6 py-3.5 rounded-2xl transition-colors shadow-sm text-sm flex items-center gap-2">
+              </a>
+              <Link
+                href="/dashboard/seller/apply"
+                className="bg-white border border-stone-200 hover:border-stone-300 text-stone-800 font-bold px-6 py-3.5 rounded-2xl transition-colors shadow-sm text-sm flex items-center gap-2"
+              >
                 Become a seller <ArrowRight className="w-4 h-4" />
-              </button>
+              </Link>
             </div>
             <p className="flex items-center gap-2 text-sm text-stone-400">
               <Shield className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -2089,7 +2107,10 @@ export function ImportedLandingPage() {
       </section>
 
       {/* ── TRENDING ── */}
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section
+        id="featured-products"
+        className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      >
         <div className="flex items-end justify-between mb-8">
           <div>
             <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-600">
@@ -2288,9 +2309,12 @@ export function ImportedLandingPage() {
             ))}
           </div>
           <div className="text-center mt-10">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-7 py-3.5 rounded-2xl text-sm transition-colors shadow-sm">
+            <Link
+              href="/dashboard/seller/apply"
+              className="inline-flex bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-7 py-3.5 rounded-2xl text-sm transition-colors shadow-sm"
+            >
               Apply to sell on Marketo
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -2351,12 +2375,18 @@ export function ImportedLandingPage() {
             fees. Full control over your products, prices, and orders.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
-            <button className="bg-white hover:bg-emerald-50 text-emerald-700 font-extrabold px-7 py-3.5 rounded-2xl text-sm transition-colors shadow-sm">
+            <Link
+              href="/dashboard/seller/apply"
+              className="bg-white hover:bg-emerald-50 text-emerald-700 font-extrabold px-7 py-3.5 rounded-2xl text-sm transition-colors shadow-sm"
+            >
               Apply to become a seller
-            </button>
-            <button className="border-2 border-emerald-400 hover:border-white text-white font-bold px-7 py-3.5 rounded-2xl text-sm transition-colors">
+            </Link>
+            <a
+              href="#featured-products"
+              className="border-2 border-emerald-400 hover:border-white text-white font-bold px-7 py-3.5 rounded-2xl text-sm transition-colors"
+            >
               Browse the marketplace
-            </button>
+            </a>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-emerald-100 text-xs font-semibold">
             <span className="flex items-center gap-1.5">
