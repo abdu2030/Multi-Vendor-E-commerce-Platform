@@ -2,9 +2,9 @@
 
 Production-style multi-vendor marketplace built step by step from the provided SRS.
 
-The project currently contains the Week 1 Day 1-7 foundation. Future work should continue one assigned day/module at a time.
+The project currently contains the Week 1 foundation and Week 2 Day 1 seller application API. Future work should continue one assigned day/module at a time.
 
-## Current Scope: Week 1 Day 1-7
+## Current Scope: Week 1 + Week 2 Day 1
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -23,6 +23,7 @@ The project currently contains the Week 1 Day 1-7 foundation. Future work should
 - Protected dashboard layout
 - Auth flow tested end-to-end against PostgreSQL
 - Initial environment setup guide
+- Week 2 Day 1 seller application API
 
 ## Ground Rules
 
@@ -80,6 +81,8 @@ POST /api/auth/refresh
 POST /api/auth/logout
 GET  /api/auth/me
 GET  /api/users/profile
+POST /api/seller-applications
+GET  /api/seller-applications/me
 ```
 
 ## Frontend Auth Routes
