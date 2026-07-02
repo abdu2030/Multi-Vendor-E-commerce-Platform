@@ -92,6 +92,8 @@ GET /login
 GET /register
 GET /dashboard
 GET /dashboard/profile
+GET /dashboard/seller/apply
+GET /dashboard/seller/status
 ```
 
 ## Day 7 Verification

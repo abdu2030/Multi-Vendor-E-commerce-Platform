@@ -19,7 +19,8 @@ a {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -149,34 +150,53 @@ input {
   margin-bottom: 28px;
 }
 
-.auth-form {
+.auth-form,
+.seller-form {
   display: grid;
   gap: 16px;
 }
 
-.auth-form label {
+.auth-form label,
+.seller-form label {
   display: grid;
   gap: 8px;
 }
 
 .auth-form span,
+.seller-form span,
 .profile-list dt {
   color: #2f3a35;
   font-size: 0.9rem;
   font-weight: 700;
 }
 
-.auth-form input {
+.auth-form input,
+.seller-form input,
+.seller-form textarea {
   background: #fbfcfa;
   border: 1px solid #cfd8d2;
   border-radius: 6px;
   color: #17211d;
-  min-height: 46px;
   outline: none;
   padding: 0 14px;
 }
 
-.auth-form input:focus {
+.auth-form input,
+.seller-form input {
+  min-height: 46px;
+}
+
+.seller-form textarea {
+  line-height: 1.5;
+  min-height: 98px;
+  padding-bottom: 12px;
+  padding-top: 12px;
+  resize: vertical;
+}
+
+.auth-form input:focus,
+.seller-form input:focus,
+.seller-form textarea:focus {
   border-color: #1f7a5a;
   box-shadow: 0 0 0 3px rgba(31, 122, 90, 0.14);
 }
@@ -260,11 +280,79 @@ input {
 }
 
 .metric-card,
-.profile-panel {
+.profile-panel,
+.workflow-panel,
+.status-panel,
+.empty-state {
   background: #ffffff;
   border: 1px solid #dfe5dc;
   border-radius: 8px;
   padding: 22px;
+}
+
+.workflow-panel {
+  max-width: 880px;
+}
+
+.workflow-heading,
+.status-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.workflow-heading h2,
+.status-heading h2,
+.empty-state h2 {
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.muted-text {
+  color: #526159;
+  line-height: 1.6;
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.status-panel,
+.empty-state {
+  margin-top: 18px;
+}
+
+.status-badge {
+  border-radius: 999px;
+  border: 1px solid #c9d2cc;
+  color: #2f3a35;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.status-pending {
+  background: #fff8df;
+  border-color: #ead587;
+  color: #735d00;
+}
+
+.status-approved {
+  background: #e9f5ef;
+  border-color: #b9dacb;
+  color: #176145;
+}
+
+.status-rejected,
+.status-suspended {
+  background: #fff1f0;
+  border-color: #ffc9c4;
+  color: #9f2c22;
 }
 
 .profile-list {
@@ -304,6 +392,17 @@ input {
 
   .dashboard-header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid,
+  .workflow-heading,
+  .status-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-heading,
+  .status-heading {
     flex-direction: column;
   }
 }

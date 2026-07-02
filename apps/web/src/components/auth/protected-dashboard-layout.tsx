@@ -7,7 +7,9 @@ import { useAuth } from "./auth-provider";
 
 const navigation = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/profile", label: "Profile" }
+  { href: "/dashboard/profile", label: "Profile" },
+  { href: "/dashboard/seller/apply", label: "Seller application" },
+  { href: "/dashboard/seller/status", label: "Application status" }
 ];
 
 export function ProtectedDashboardLayout({ children }: { children: ReactNode }) {
