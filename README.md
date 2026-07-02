@@ -2,9 +2,9 @@
 
 Production-style multi-vendor marketplace built step by step from the provided SRS.
 
-The project currently contains the Week 1 foundation and Week 2 Day 1 seller application API. Future work should continue one assigned day/module at a time.
+The project currently contains the Week 1 foundation and Week 2 Day 1-4 seller/admin approval workflow. Future work should continue one assigned day/module at a time.
 
-## Current Scope: Week 1 + Week 2 Day 1
+## Current Scope: Week 1 + Week 2 Day 1-4
 
 - Monorepo structure with `apps/api` and `apps/web`
 - Backend scaffold for NestJS + TypeScript
@@ -25,6 +25,7 @@ The project currently contains the Week 1 foundation and Week 2 Day 1 seller app
 - Initial environment setup guide
 - Week 2 Day 1 seller application API
 - Week 2 Day 3 admin seller approval API
+- Week 2 Day 4 admin seller approval UI
 
 ## Ground Rules
 
@@ -99,6 +100,7 @@ GET /dashboard
 GET /dashboard/profile
 GET /dashboard/seller/apply
 GET /dashboard/seller/status
+GET /dashboard/admin/seller-applications
 ```
 
 ## Day 7 Verification

@@ -294,8 +294,13 @@ textarea {
   max-width: 880px;
 }
 
+.wide-panel {
+  max-width: 1180px;
+}
+
 .workflow-heading,
-.status-heading {
+.status-heading,
+.table-header {
   align-items: flex-start;
   display: flex;
   gap: 16px;
@@ -355,6 +360,151 @@ textarea {
   color: #9f2c22;
 }
 
+.table-panel {
+  margin-top: 18px;
+}
+
+.responsive-table {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.approval-table {
+  border-collapse: collapse;
+  min-width: 860px;
+  width: 100%;
+}
+
+.approval-table th,
+.approval-table td {
+  border-bottom: 1px solid #edf0eb;
+  padding: 14px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.approval-table th {
+  color: #526159;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.approval-table td strong,
+.approval-table td span {
+  display: block;
+}
+
+.approval-table td span {
+  color: #526159;
+  line-height: 1.45;
+  margin-top: 4px;
+  max-width: 340px;
+}
+
+.decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.small-button,
+.icon-button {
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.small-button {
+  border: 1px solid #c9d2cc;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.approve-button {
+  background: #e9f5ef;
+  border-color: #b9dacb;
+  color: #176145;
+}
+
+.reject-button,
+.suspend-button {
+  background: #fff1f0;
+  border-color: #ffc9c4;
+  color: #9f2c22;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(23, 33, 29, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 20;
+}
+
+.decision-modal {
+  background: #ffffff;
+  border: 1px solid #dfe5dc;
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(23, 33, 29, 0.2);
+  max-width: 560px;
+  padding: 24px;
+  width: min(100%, 560px);
+}
+
+.icon-button {
+  background: #ffffff;
+  border: 1px solid #c9d2cc;
+  color: #526159;
+  height: 36px;
+  width: 36px;
+}
+
+.modal-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.modal-field span {
+  color: #2f3a35;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.modal-field textarea {
+  background: #fbfcfa;
+  border: 1px solid #cfd8d2;
+  border-radius: 6px;
+  color: #17211d;
+  line-height: 1.5;
+  outline: none;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.modal-field textarea:focus {
+  border-color: #1f7a5a;
+  box-shadow: 0 0 0 3px rgba(31, 122, 90, 0.14);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.inline-empty {
+  box-shadow: none;
+}
+
 .profile-list {
   display: grid;
   gap: 14px;
@@ -397,12 +547,19 @@ textarea {
 
   .form-grid,
   .workflow-heading,
-  .status-heading {
+  .status-heading,
+  .table-header {
     grid-template-columns: 1fr;
   }
 
   .workflow-heading,
-  .status-heading {
+  .status-heading,
+  .table-header,
+  .modal-actions {
     flex-direction: column;
+  }
+
+  .modal-actions {
+    align-items: stretch;
   }
 }

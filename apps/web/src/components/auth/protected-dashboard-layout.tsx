@@ -9,7 +9,8 @@ const navigation = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/seller/apply", label: "Seller application" },
-  { href: "/dashboard/seller/status", label: "Application status" }
+  { href: "/dashboard/seller/status", label: "Application status" },
+  { href: "/dashboard/admin/seller-applications", label: "Seller approvals", roles: ["ADMIN"] }
 ];
 
 export function ProtectedDashboardLayout({ children }: { children: ReactNode }) {
@@ -38,15 +39,17 @@ export function ProtectedDashboardLayout({ children }: { children: ReactNode }) 
           MultiVendor
         </Link>
         <nav aria-label="Dashboard">
-          {navigation.map((item) => (
-            <Link
-              className={pathname === item.href ? "nav-item active" : "nav-item"}
-              href={item.href}
-              key={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navigation
+            .filter((item) => !item.roles || item.roles.includes(user.role))
+            .map((item) => (
+              <Link
+                className={pathname === item.href ? "nav-item active" : "nav-item"}
+                href={item.href}
+                key={item.href}
+              >
+                {item.label}
+              </Link>
+            ))}
         </nav>
       </aside>
       <section className="dashboard-main">
