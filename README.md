@@ -24,6 +24,7 @@ The project currently contains the Week 1 foundation and Week 2 Day 1 seller app
 - Auth flow tested end-to-end against PostgreSQL
 - Initial environment setup guide
 - Week 2 Day 1 seller application API
+- Week 2 Day 3 admin seller approval API
 
 ## Ground Rules
 
@@ -83,6 +84,10 @@ GET  /api/auth/me
 GET  /api/users/profile
 POST /api/seller-applications
 GET  /api/seller-applications/me
+GET  /api/admin/seller-applications/pending
+PATCH /api/admin/seller-applications/:id/approve
+PATCH /api/admin/seller-applications/:id/reject
+PATCH /api/admin/seller-applications/:id/suspend
 ```
 
 ## Frontend Auth Routes
