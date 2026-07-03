@@ -25,8 +25,9 @@ const statusLabels: Record<Status, string> = {
 };
 
 export function SellerApplicationStatus() {
-  const { accessToken } = useAuth();
+  const { accessToken, refreshCurrentSession, user } = useAuth();
   const [application, setApplication] = useState<SellerApplication | null>(null);
+  const [didRefreshSellerSession, setDidRefreshSellerSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -46,6 +47,24 @@ export function SellerApplicationStatus() {
       })
       .finally(() => setIsLoading(false));
   }, [accessToken]);
+
+  useEffect(() => {
+    if (
+      application?.status !== "APPROVED" ||
+      user?.role === "SELLER" ||
+      didRefreshSellerSession
+    ) {
+      return;
+    }
+
+    setDidRefreshSellerSession(true);
+    refreshCurrentSession().catch(() => undefined);
+  }, [
+    application?.status,
+    didRefreshSellerSession,
+    refreshCurrentSession,
+    user?.role,
+  ]);
 
   if (isLoading) {
     return (
