@@ -8,6 +8,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
 import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
+import { SellerProductsModule } from "./modules/seller-products/seller-products.module";
 import { UsersModule } from "./modules/users/users.module";
 
 @Module({
@@ -22,6 +23,7 @@ import { UsersModule } from "./modules/users/users.module";
     AdminSellerApplicationsModule,
     SellerApplicationsModule,
     SellerDashboardModule,
+    SellerProductsModule,
     UsersModule
   ],
   controllers: [AppController]
