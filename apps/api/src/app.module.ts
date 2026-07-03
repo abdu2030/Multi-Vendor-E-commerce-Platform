@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { validateEnv } from "./config/env.validation";
+import { AdminCategoriesModule } from "./modules/admin-categories/admin-categories.module";
 import { AdminSellerApplicationsModule } from "./modules/admin-seller-applications/admin-seller-applications.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
@@ -17,6 +18,7 @@ import { UsersModule } from "./modules/users/users.module";
     }),
     PrismaModule,
     AuthModule,
+    AdminCategoriesModule,
     AdminSellerApplicationsModule,
     SellerApplicationsModule,
     SellerDashboardModule,

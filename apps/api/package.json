@@ -12,7 +12,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed:admin": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "seed:admin": "node prisma/seed.js",
+    "seed:starter": "node prisma/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
