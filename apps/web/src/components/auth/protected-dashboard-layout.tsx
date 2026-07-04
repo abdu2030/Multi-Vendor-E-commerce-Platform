@@ -12,6 +12,7 @@ import {
   Package,
   Settings,
   Shield,
+  ShoppingBag,
   Users,
   X,
 } from "@/components/imported/design-icons";
@@ -63,6 +64,13 @@ const navigation: NavigationItem[] = [
     label: "Seller approvals",
     description: "Admin queue",
     Icon: BadgeCheck,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/dashboard/admin/products",
+    label: "Product approvals",
+    description: "Listing review",
+    Icon: ShoppingBag,
     roles: ["ADMIN"],
   },
 ];
@@ -280,6 +288,10 @@ function initials(name: string) {
 }
 
 function pageTitle(pathname: string) {
+  if (pathname.includes("/admin/products")) {
+    return "Product approvals";
+  }
+
   if (pathname.includes("/admin")) {
     return "Seller approvals";
   }
