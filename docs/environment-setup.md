@@ -59,6 +59,18 @@ Default local API URL:
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
+## Cloudinary Uploads
+
+Product images, store logos, and store banners use signed Cloudinary uploads from the API. Add these values to `apps/api/.env`:
+
+```text
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+CLOUDINARY_UPLOAD_FOLDER=multi-vendor-ecommerce
+```
+
+The upload endpoints accept a `file` string containing a data URI, base64 payload, or remote image URL.
 ## Database
 
 Generate Prisma Client:
@@ -123,3 +135,4 @@ GET  /api/users/profile
 POST /api/auth/refresh
 POST /api/auth/logout
 ```
+
