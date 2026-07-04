@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, ProductStatus, SellerStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ListProductsQueryDto, ProductSort } from "./dto/list-products-query.dto";
@@ -40,6 +40,22 @@ export class ProductsService {
         sort: query.sort ?? "newest"
       }
     };
+  }
+
+  async getOneBySlug(slug: string) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        ...buildPublicVisibilityWhere(),
+        slug
+      },
+      select: publicProductDetailSelect
+    });
+
+    if (!product) {
+      throw new NotFoundException("Product was not found.");
+    }
+
+    return formatPublicProductDetail(product);
   }
 }
 
@@ -89,11 +105,52 @@ const publicProductSelect = {
   }
 } as const;
 
+const publicProductDetailSelect = {
+  ...publicProductSelect,
+  images: {
+    orderBy: { sortOrder: "asc" },
+    select: {
+      id: true,
+      url: true,
+      altText: true,
+      sortOrder: true
+    }
+  },
+  variants: {
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      name: true,
+      value: true,
+      sku: true,
+      priceDeltaCents: true,
+      stockQuantity: true
+    }
+  }
+} as const;
+
 type PublicProduct = Prisma.ProductGetPayload<{ select: typeof publicProductSelect }>;
+type PublicProductDetail = Prisma.ProductGetPayload<{ select: typeof publicProductDetailSelect }>;
+
+function buildPublicVisibilityWhere(): Prisma.ProductWhereInput {
+  return {
+    status: ProductStatus.APPROVED,
+    category: {
+      isActive: true
+    },
+    store: {
+      status: SellerStatus.APPROVED,
+      sellerProfile: {
+        status: SellerStatus.APPROVED
+      }
+    }
+  };
+}
 
 function buildPublicProductWhere(query: ListProductsQueryDto): Prisma.ProductWhereInput {
   const search = query.q?.trim();
   const priceCents: Prisma.IntFilter = {};
+  const where = buildPublicVisibilityWhere();
 
   if (typeof query.minPriceCents !== "undefined") {
     priceCents.gte = query.minPriceCents;
@@ -104,7 +161,7 @@ function buildPublicProductWhere(query: ListProductsQueryDto): Prisma.ProductWhe
   }
 
   return {
-    status: ProductStatus.APPROVED,
+    ...where,
     category: {
       isActive: true,
       ...(query.categoryId ? { id: query.categoryId } : {}),
@@ -177,6 +234,14 @@ function formatPublicProduct(product: PublicProduct) {
       variants: product._count.variants,
       reviews: product._count.reviews
     }
+  };
+}
+
+function formatPublicProductDetail(product: PublicProductDetail) {
+  return {
+    ...formatPublicProduct(product),
+    images: product.images,
+    variants: product.variants
   };
 }
 
