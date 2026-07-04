@@ -58,6 +58,11 @@ export class SellerProductsService {
     const stockQuantity = dto.stockQuantity;
     const images = normalizeImages(dto.images);
     const variants = normalizeVariants(dto.variants);
+    const status = dto.status ?? ProductStatus.DRAFT;
+
+    if (!sellerEditableStatuses.has(status)) {
+      throw new ForbiddenException("Sellers can only create draft, pending review, or archived products.");
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -70,6 +75,7 @@ export class SellerProductsService {
           priceCents: dto.priceCents,
           currency: normalizeCurrency(dto.currency),
           stockQuantity,
+          status,
           tags: normalizeTags(dto.tags),
           ...(images.length ? { images: { create: images } } : {}),
           ...(variants.length ? { variants: { create: variants } } : {})

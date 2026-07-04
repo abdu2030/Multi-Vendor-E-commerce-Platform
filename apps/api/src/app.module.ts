@@ -5,6 +5,7 @@ import { validateEnv } from "./config/env.validation";
 import { AdminCategoriesModule } from "./modules/admin-categories/admin-categories.module";
 import { AdminSellerApplicationsModule } from "./modules/admin-seller-applications/admin-seller-applications.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { CategoriesModule } from "./modules/categories/categories.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
 import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
@@ -20,6 +21,7 @@ import { UsersModule } from "./modules/users/users.module";
     }),
     PrismaModule,
     AuthModule,
+    CategoriesModule,
     AdminCategoriesModule,
     AdminSellerApplicationsModule,
     SellerApplicationsModule,

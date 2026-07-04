@@ -1,7 +1,9 @@
+import { ProductStatus } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
   IsArray,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -42,6 +44,10 @@ export class CreateSellerProductDto {
   @IsInt()
   @Min(0)
   stockQuantity!: number;
+
+  @IsOptional()
+  @IsEnum(ProductStatus)
+  status?: ProductStatus;
 
   @IsOptional()
   @IsArray()

@@ -9,10 +9,12 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  ShoppingBag,
 } from "@/components/imported/design-icons";
 
 const sellerNavigation = [
   { href: "/dashboard/seller", label: "Overview", Icon: LayoutDashboard },
+  { href: "/dashboard/seller/products", label: "Products", Icon: ShoppingBag },
   { href: "/dashboard/seller/settings", label: "Store settings", Icon: Settings },
   { href: "/dashboard/seller/status", label: "Application status", Icon: Package },
 ];
@@ -79,3 +81,4 @@ export function SellerDashboardShell({ children }: { children: ReactNode }) {
     </section>
   );
 }
+
