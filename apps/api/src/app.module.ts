@@ -7,6 +7,7 @@ import { AdminSellerApplicationsModule } from "./modules/admin-seller-applicatio
 import { AuthModule } from "./modules/auth/auth.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
+import { ProductsModule } from "./modules/products/products.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
 import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
 import { SellerProductsModule } from "./modules/seller-products/seller-products.module";
@@ -27,9 +28,11 @@ import { UsersModule } from "./modules/users/users.module";
     SellerApplicationsModule,
     SellerDashboardModule,
     SellerProductsModule,
+    ProductsModule,
     SellerUploadsModule,
     UsersModule
   ],
   controllers: [AppController]
 })
 export class AppModule {}
+
