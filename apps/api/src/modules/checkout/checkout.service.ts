@@ -7,12 +7,14 @@ import {
 import { ConfigService } from "@nestjs/config";
 import {
   CartStatus,
+  OrderStatus,
   PaymentStatus,
   Prisma,
   ProductStatus,
   SellerStatus
 } from "@prisma/client";
 import Stripe from "stripe";
+import { CartCacheService } from "../cart/cart-cache.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 const WEBHOOK_PROVIDER = "stripe";
@@ -28,6 +30,7 @@ export class CheckoutService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly cartCache: CartCacheService,
     config: ConfigService
   ) {
     const secretKey = config.get<string>("STRIPE_SECRET_KEY")?.trim();
@@ -265,11 +268,7 @@ export class CheckoutService {
         );
       case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed":
-        return this.updateCheckoutSessionPayment(
-          event.data.object as Stripe.Checkout.Session,
-          PaymentStatus.PAID,
-          event.id
-        );
+        return this.createOrderFromPaidCheckoutSession(event.data.object as Stripe.Checkout.Session, event.id);
       case "checkout.session.expired":
         return this.updateCheckoutSessionPayment(
           event.data.object as Stripe.Checkout.Session,
@@ -295,25 +294,11 @@ export class CheckoutService {
       return { action: "payment_not_found", sessionId: session.id };
     }
 
-    const cartId = session.client_reference_id ?? session.metadata?.cartId ?? null;
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status,
-          rawEventId: eventId
-        }
-      });
-
-      if (status === PaymentStatus.PAID && cartId) {
-        await tx.cart.updateMany({
-          where: {
-            id: cartId,
-            status: CartStatus.ACTIVE
-          },
-          data: { status: CartStatus.CHECKED_OUT }
-        });
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status,
+        rawEventId: eventId
       }
     });
 
@@ -324,54 +309,176 @@ export class CheckoutService {
     };
   }
 
+  private async createOrderFromPaidCheckoutSession(session: Stripe.Checkout.Session, eventId: string) {
+    const cartId = session.client_reference_id ?? session.metadata?.cartId;
+    const buyerId = session.metadata?.userId;
+    const addressId = session.metadata?.addressId;
+
+    if (!cartId || !buyerId || !addressId) {
+      throw new BadRequestException("Stripe checkout session is missing order metadata.");
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: { providerRef: session.id },
+        select: {
+          id: true,
+          orderId: true,
+          buyerId: true,
+          amountCents: true,
+          currency: true,
+          status: true
+        }
+      });
+
+      if (!payment) {
+        return { action: "payment_not_found", sessionId: session.id };
+      }
+
+      if (payment.orderId) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.PAID,
+            rawEventId: eventId
+          }
+        });
+
+        return {
+          action: "order_already_created",
+          orderId: payment.orderId,
+          sessionId: session.id
+        };
+      }
+
+      if (payment.buyerId !== buyerId) {
+        throw new ConflictException("Stripe payment buyer does not match checkout metadata.");
+      }
+
+      const [cart, address] = await Promise.all([
+        this.findOrderCart(tx, cartId, buyerId),
+        this.findOrderAddress(tx, addressId, buyerId)
+      ]);
+
+      if (!cart || cart.items.length === 0) {
+        throw new ConflictException("Cannot create an order from an empty cart.");
+      }
+
+      if (!address) {
+        throw new ConflictException("Cannot create an order without a valid shipping address.");
+      }
+
+      const currencies = new Set(cart.items.map((item) => item.product.currency));
+
+      if (currencies.size !== 1) {
+        throw new ConflictException("Order cannot contain multiple currencies.");
+      }
+
+      const currency = cart.items[0].product.currency;
+      const subtotalCents = cart.items.reduce(
+        (total, item) => total + item.product.priceCents * item.quantity,
+        0
+      );
+
+      if (payment.amountCents !== subtotalCents || payment.currency !== currency) {
+        throw new ConflictException("Stripe payment amount does not match the current cart total.");
+      }
+
+      for (const item of cart.items) {
+        assertOrderItemPurchasable(item);
+
+        const update = await tx.product.updateMany({
+          where: {
+            id: item.product.id,
+            stockQuantity: { gte: item.quantity }
+          },
+          data: {
+            stockQuantity: { decrement: item.quantity }
+          }
+        });
+
+        if (update.count !== 1) {
+          throw new ConflictException(`Insufficient inventory for ${item.product.title}.`);
+        }
+
+        await tx.inventoryLog.create({
+          data: {
+            productId: item.product.id,
+            change: -item.quantity,
+            reason: "ORDER_PAID",
+            actorUserId: buyerId
+          }
+        });
+      }
+
+      const order = await tx.order.create({
+        data: {
+          buyerId,
+          orderNumber: generateOrderNumber(),
+          status: OrderStatus.PAID,
+          subtotalCents,
+          totalCents: subtotalCents,
+          shippingAddress: snapshotAddress(address),
+          items: {
+            create: cart.items.map((item) => ({
+              productId: item.product.id,
+              storeId: item.product.store.id,
+              productTitle: item.product.title,
+              productImage: item.product.images[0]?.url ?? null,
+              unitPriceCents: item.product.priceCents,
+              quantity: item.quantity,
+              totalCents: item.product.priceCents * item.quantity,
+              sellerFulfillmentStatus: OrderStatus.PAID
+            }))
+          }
+        },
+        select: {
+          id: true,
+          orderNumber: true,
+          totalCents: true,
+          items: { select: { id: true } }
+        }
+      });
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          orderId: order.id,
+          status: PaymentStatus.PAID,
+          rawEventId: eventId
+        }
+      });
+
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { status: CartStatus.ACTIVE }
+      });
+
+      return {
+        action: "order_created",
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        itemCount: order.items.length,
+        totalCents: order.totalCents,
+        sessionId: session.id
+      };
+    });
+
+    if (result.action === "order_created") {
+      await this.cartCache.invalidate(buyerId);
+    }
+
+    return result;
+  }
+
   private findCheckoutCart(userId: string) {
     return this.prisma.cart.findFirst({
       where: {
         userId,
         status: CartStatus.ACTIVE
       },
-      select: {
-        id: true,
-        user: {
-          select: {
-            email: true
-          }
-        },
-        items: {
-          orderBy: { createdAt: "asc" },
-          select: {
-            quantity: true,
-            product: {
-              select: {
-                id: true,
-                title: true,
-                priceCents: true,
-                currency: true,
-                stockQuantity: true,
-                status: true,
-                category: {
-                  select: { isActive: true }
-                },
-                store: {
-                  select: {
-                    id: true,
-                    name: true,
-                    status: true,
-                    sellerProfile: {
-                      select: { status: true }
-                    }
-                  }
-                },
-                images: {
-                  orderBy: { sortOrder: "asc" },
-                  take: 1,
-                  select: { url: true }
-                }
-              }
-            }
-          }
-        }
-      }
+      select: checkoutCartSelect
     });
   }
 
@@ -387,10 +494,82 @@ export class CheckoutService {
 
     return address;
   }
+
+  private findOrderCart(tx: Prisma.TransactionClient, cartId: string, userId: string) {
+    return tx.cart.findFirst({
+      where: {
+        id: cartId,
+        userId
+      },
+      select: checkoutCartSelect
+    });
+  }
+
+  private findOrderAddress(tx: Prisma.TransactionClient, addressId: string, userId: string) {
+    return tx.address.findFirst({
+      where: { id: addressId, userId },
+      select: addressSnapshotSelect
+    });
+  }
 }
+
+const checkoutCartSelect = {
+  id: true,
+  user: {
+    select: {
+      email: true
+    }
+  },
+  items: {
+    orderBy: { createdAt: "asc" },
+    select: {
+      quantity: true,
+      product: {
+        select: {
+          id: true,
+          title: true,
+          priceCents: true,
+          currency: true,
+          stockQuantity: true,
+          status: true,
+          category: {
+            select: { isActive: true }
+          },
+          store: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              sellerProfile: {
+                select: { status: true }
+              }
+            }
+          },
+          images: {
+            orderBy: { sortOrder: "asc" },
+            take: 1,
+            select: { url: true }
+          }
+        }
+      }
+    }
+  }
+} as const;
+
+const addressSnapshotSelect = {
+  id: true,
+  label: true,
+  line1: true,
+  line2: true,
+  city: true,
+  state: true,
+  country: true,
+  postalCode: true
+} as const;
 
 type CheckoutCart = NonNullable<Awaited<ReturnType<CheckoutService["findCheckoutCart"]>>>;
 type CheckoutCartItem = CheckoutCart["items"][number];
+type AddressSnapshot = Prisma.AddressGetPayload<{ select: typeof addressSnapshotSelect }>;
 
 function isPurchasableCartItem(item: CheckoutCartItem) {
   return (
@@ -403,10 +582,36 @@ function isPurchasableCartItem(item: CheckoutCartItem) {
   );
 }
 
+function assertOrderItemPurchasable(item: CheckoutCartItem) {
+  if (!isPurchasableCartItem(item)) {
+    throw new ConflictException(`${item.product.title} is no longer available for purchase.`);
+  }
+}
+
+function snapshotAddress(address: AddressSnapshot) {
+  return {
+    id: address.id,
+    label: address.label,
+    line1: address.line1,
+    line2: address.line2,
+    city: address.city,
+    state: address.state,
+    country: address.country,
+    postalCode: address.postalCode
+  };
+}
+
 function getStripeImages(images: Array<{ url: string }>) {
   const imageUrl = images[0]?.url;
 
   return imageUrl && /^https?:\/\//i.test(imageUrl) ? [imageUrl] : undefined;
+}
+
+function generateOrderNumber() {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+
+  return `ORD-${timestamp}-${random}`;
 }
 
 function getErrorMessage(error: unknown) {
