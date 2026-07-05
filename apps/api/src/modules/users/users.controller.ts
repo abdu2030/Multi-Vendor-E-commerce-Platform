@@ -1,7 +1,8 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
+import { CreateAddressDto } from "./dto/create-address.dto";
 import { UsersService } from "./users.service";
 
 @Controller("users")
@@ -12,5 +13,20 @@ export class UsersController {
   @Get("profile")
   profile(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.getProfile(user.id);
+  }
+
+  @Get("addresses")
+  getAddresses(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getAddresses(user.id);
+  }
+
+  @Post("addresses")
+  createAddress(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateAddressDto) {
+    return this.usersService.createAddress(user.id, dto);
+  }
+
+  @Patch("addresses/:addressId/default")
+  setDefaultAddress(@CurrentUser() user: AuthenticatedUser, @Param("addressId") addressId: string) {
+    return this.usersService.setDefaultAddress(user.id, addressId);
   }
 }

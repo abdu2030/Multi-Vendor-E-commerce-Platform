@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -18,11 +19,11 @@ import {
 import { CartItem, CartSummary, getCartSummary, removeCartItem, updateCartItem } from "@/lib/cart";
 
 export function CartPageClient() {
+  const router = useRouter();
   const { accessToken, isLoading: authLoading } = useAuth();
   const [cart, setCart] = useState<CartSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
   const loadCart = useCallback(async () => {
@@ -99,7 +100,7 @@ export function CartPageClient() {
       return;
     }
 
-    setCheckoutNotice("Checkout is ready for the next checkout workflow step.");
+    router.push("/checkout");
   };
 
   if (authLoading || isLoading) {
@@ -212,12 +213,6 @@ export function CartPageClient() {
             </div>
           ) : null}
 
-          {checkoutNotice ? (
-            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold leading-6 text-emerald-800">
-              {checkoutNotice}
-            </div>
-          ) : null}
-
           <button
             className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500"
             disabled={!canCheckout}
@@ -309,7 +304,7 @@ function CartLineItem({
               {item.product.title}
             </Link>
             <p className="mt-1 text-sm font-bold text-stone-500">
-              {formatMoney(item.pricing.unitPriceCents, item.pricing.currency)} each · {item.stock.availableQuantity} available
+              {formatMoney(item.pricing.unitPriceCents, item.pricing.currency)} each - {item.stock.availableQuantity} available
             </p>
           </div>
           <div className="text-left lg:text-right">

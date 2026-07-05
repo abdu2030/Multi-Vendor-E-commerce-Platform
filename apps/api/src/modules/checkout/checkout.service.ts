@@ -29,12 +29,15 @@ export class CheckoutService {
     this.frontendUrl = normalizeUrl(config.get<string>("FRONTEND_URL") ?? "http://localhost:3000");
   }
 
-  async createCheckoutSession(userId: string) {
+  async createCheckoutSession(userId: string, addressId: string) {
     if (!this.stripe) {
       throw new ServiceUnavailableException("Stripe is not configured.");
     }
 
-    const cart = await this.findCheckoutCart(userId);
+    const [cart, address] = await Promise.all([
+      this.findCheckoutCart(userId),
+      this.findCheckoutAddress(userId, addressId)
+    ]);
 
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException("Add at least one item to the cart before checkout.");
@@ -66,6 +69,11 @@ export class CheckoutService {
       throw new BadRequestException("Cart total must be greater than zero before checkout.");
     }
 
+    const checkoutMetadata = {
+      cartId: cart.id,
+      userId,
+      addressId: address.id
+    };
     const session = await this.stripe.checkout.sessions.create({
       mode: "payment",
       client_reference_id: cart.id,
@@ -87,16 +95,10 @@ export class CheckoutService {
         }
       })),
       success_url: `${this.frontendUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${this.frontendUrl}/cart?checkout=cancelled`,
-      metadata: {
-        cartId: cart.id,
-        userId
-      },
+      cancel_url: `${this.frontendUrl}/checkout?checkout=cancelled`,
+      metadata: checkoutMetadata,
       payment_intent_data: {
-        metadata: {
-          cartId: cart.id,
-          userId
-        }
+        metadata: checkoutMetadata
       }
     });
 
@@ -115,7 +117,8 @@ export class CheckoutService {
       sessionId: session.id,
       url: session.url,
       amountCents,
-      currency: currency.toUpperCase()
+      currency: currency.toUpperCase(),
+      addressId: address.id
     };
   }
 
@@ -168,6 +171,19 @@ export class CheckoutService {
         }
       }
     });
+  }
+
+  private async findCheckoutAddress(userId: string, addressId: string) {
+    const address = await this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+      select: { id: true }
+    });
+
+    if (!address) {
+      throw new BadRequestException("Select a valid shipping address before checkout.");
+    }
+
+    return address;
   }
 }
 

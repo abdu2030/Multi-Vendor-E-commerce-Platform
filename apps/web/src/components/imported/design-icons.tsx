@@ -361,6 +361,25 @@ export function LogOut(props: IconProps) {
   );
 }
 
+export function MapPin(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 21s7-5.5 7-12a7 7 0 0 0-14 0c0 6.5 7 12 7 12Z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </IconBase>
+  );
+}
+
+export function CreditCard(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h3" />
+      <path d="M14 15h3" />
+    </IconBase>
+  );
+}
 export function Save(props: IconProps) {
   return (
     <IconBase {...props}>
