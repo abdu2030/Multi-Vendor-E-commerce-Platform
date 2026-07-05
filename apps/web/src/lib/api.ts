@@ -22,6 +22,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   }
 
   const response = await fetch(`${API_URL}${path}`, {
+    cache: options.cache ?? "no-store",
     ...options,
     headers
   }).catch(() => {
