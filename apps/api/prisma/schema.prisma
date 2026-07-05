@@ -61,6 +61,14 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
 enum ReviewStatus {
   PENDING
   APPROVED
@@ -188,6 +196,7 @@ model Store {
   sellerProfile   SellerProfile @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
   products        Product[]
   orderItems      OrderItem[]
+  payouts         Payout[]
 
   @@index([status])
   @@map("stores")
@@ -259,16 +268,16 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id              String   @id @default(cuid())
+  id              String         @id @default(cuid())
   productId       String
   name            String
   value           String
   sku             String?
-  priceDeltaCents Int      @default(0)
-  stockQuantity   Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceDeltaCents Int            @default(0)
+  stockQuantity   Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   inventoryLogs   InventoryLog[]
 
   @@index([productId])
@@ -381,10 +390,35 @@ model Payment {
   updatedAt   DateTime      @updatedAt
   order       Order?        @relation(fields: [orderId], references: [id])
   buyer       User          @relation(fields: [buyerId], references: [id])
+  payouts     Payout[]
 
   @@index([buyerId])
   @@index([status])
   @@map("payments")
+}
+
+model Payout {
+  id            String       @id @default(cuid())
+  storeId       String
+  paymentId     String?
+  provider      String       @default("stripe")
+  providerRef   String?      @unique
+  amountCents   Int
+  currency      String       @default("USD")
+  status        PayoutStatus @default(PENDING)
+  scheduledAt   DateTime?
+  paidAt        DateTime?
+  failureReason String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  store         Store        @relation(fields: [storeId], references: [id])
+  payment       Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([storeId])
+  @@index([paymentId])
+  @@index([status])
+  @@map("payouts")
 }
 
 model Review {
