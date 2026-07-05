@@ -74,23 +74,38 @@ export type CartSummary = {
   };
 };
 
+export function addCartItem(
+  accessToken: string,
+  productId: string,
+  quantity: number,
+) {
+  return apiRequest<CartSummary>("/cart/items", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ productId, quantity }),
+  });
+}
 export function getCartSummary(accessToken: string) {
   return apiRequest<CartSummary>("/cart/summary", {
-    token: accessToken
+    token: accessToken,
   });
 }
 
-export function updateCartItem(accessToken: string, itemId: string, quantity: number) {
+export function updateCartItem(
+  accessToken: string,
+  itemId: string,
+  quantity: number,
+) {
   return apiRequest<CartSummary>(`/cart/items/${itemId}`, {
     method: "PATCH",
     token: accessToken,
-    body: JSON.stringify({ quantity })
+    body: JSON.stringify({ quantity }),
   });
 }
 
 export function removeCartItem(accessToken: string, itemId: string) {
   return apiRequest<CartSummary>(`/cart/items/${itemId}`, {
     method: "DELETE",
-    token: accessToken
+    token: accessToken,
   });
 }
