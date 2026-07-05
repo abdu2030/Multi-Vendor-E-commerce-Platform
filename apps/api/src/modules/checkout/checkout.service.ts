@@ -8,16 +8,23 @@ import { ConfigService } from "@nestjs/config";
 import {
   CartStatus,
   PaymentStatus,
+  Prisma,
   ProductStatus,
   SellerStatus
 } from "@prisma/client";
 import Stripe from "stripe";
 import { PrismaService } from "../prisma/prisma.service";
 
+const WEBHOOK_PROVIDER = "stripe";
+const WEBHOOK_STATUS_FAILED = "FAILED";
+const WEBHOOK_STATUS_PROCESSED = "PROCESSED";
+const WEBHOOK_STATUS_PROCESSING = "PROCESSING";
+
 @Injectable()
 export class CheckoutService {
   private readonly stripe: Stripe | null;
   private readonly frontendUrl: string;
+  private readonly webhookSecret: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -27,6 +34,7 @@ export class CheckoutService {
 
     this.stripe = secretKey ? new Stripe(secretKey) : null;
     this.frontendUrl = normalizeUrl(config.get<string>("FRONTEND_URL") ?? "http://localhost:3000");
+    this.webhookSecret = config.get<string>("STRIPE_WEBHOOK_SECRET")?.trim() ?? "";
   }
 
   async createCheckoutSession(userId: string, addressId: string) {
@@ -122,6 +130,200 @@ export class CheckoutService {
     };
   }
 
+  async handleStripeWebhook(signature: string | undefined, rawBody: Buffer | undefined) {
+    if (!this.stripe) {
+      throw new ServiceUnavailableException("Stripe is not configured.");
+    }
+
+    if (!this.webhookSecret) {
+      throw new ServiceUnavailableException("Stripe webhook secret is not configured.");
+    }
+
+    if (!signature) {
+      throw new BadRequestException("Missing Stripe signature header.");
+    }
+
+    if (!rawBody) {
+      throw new BadRequestException("Missing raw Stripe webhook body.");
+    }
+
+    const event = this.constructStripeWebhookEvent(rawBody, signature);
+    const gate = await this.beginWebhookEvent(event);
+
+    if (gate.duplicate) {
+      return {
+        received: true,
+        duplicate: true,
+        eventId: event.id,
+        eventType: event.type
+      };
+    }
+
+    try {
+      const result = await this.processStripeWebhookEvent(event);
+      await this.prisma.webhookEvent.update({
+        where: { id: gate.id },
+        data: {
+          status: WEBHOOK_STATUS_PROCESSED,
+          processedAt: new Date(),
+          failureReason: null
+        }
+      });
+
+      return {
+        received: true,
+        duplicate: false,
+        eventId: event.id,
+        eventType: event.type,
+        result
+      };
+    } catch (error) {
+      await this.prisma.webhookEvent.update({
+        where: { id: gate.id },
+        data: {
+          status: WEBHOOK_STATUS_FAILED,
+          failureReason: getErrorMessage(error)
+        }
+      });
+
+      throw error;
+    }
+  }
+
+  private constructStripeWebhookEvent(rawBody: Buffer, signature: string) {
+    try {
+      return this.stripe!.webhooks.constructEvent(rawBody, signature, this.webhookSecret);
+    } catch {
+      throw new BadRequestException("Invalid Stripe webhook signature.");
+    }
+  }
+
+  private async beginWebhookEvent(event: Stripe.Event) {
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: {
+        provider_eventId: {
+          provider: WEBHOOK_PROVIDER,
+          eventId: event.id
+        }
+      }
+    });
+
+    if (existing?.status === WEBHOOK_STATUS_PROCESSED || existing?.status === WEBHOOK_STATUS_PROCESSING) {
+      return { duplicate: true, id: existing.id };
+    }
+
+    if (existing) {
+      const retry = await this.prisma.webhookEvent.update({
+        where: { id: existing.id },
+        data: {
+          eventType: event.type,
+          status: WEBHOOK_STATUS_PROCESSING,
+          attemptCount: { increment: 1 },
+          failureReason: null
+        }
+      });
+
+      return { duplicate: false, id: retry.id };
+    }
+
+    try {
+      const created = await this.prisma.webhookEvent.create({
+        data: {
+          provider: WEBHOOK_PROVIDER,
+          eventId: event.id,
+          eventType: event.type,
+          status: WEBHOOK_STATUS_PROCESSING
+        }
+      });
+
+      return { duplicate: false, id: created.id };
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        const duplicate = await this.prisma.webhookEvent.findUniqueOrThrow({
+          where: {
+            provider_eventId: {
+              provider: WEBHOOK_PROVIDER,
+              eventId: event.id
+            }
+          }
+        });
+
+        return { duplicate: true, id: duplicate.id };
+      }
+
+      throw error;
+    }
+  }
+
+  private async processStripeWebhookEvent(event: Stripe.Event) {
+    switch (event.type) {
+      case "checkout.session.async_payment_failed":
+        return this.updateCheckoutSessionPayment(
+          event.data.object as Stripe.Checkout.Session,
+          PaymentStatus.FAILED,
+          event.id
+        );
+      case "checkout.session.async_payment_succeeded":
+      case "checkout.session.completed":
+        return this.updateCheckoutSessionPayment(
+          event.data.object as Stripe.Checkout.Session,
+          PaymentStatus.PAID,
+          event.id
+        );
+      case "checkout.session.expired":
+        return this.updateCheckoutSessionPayment(
+          event.data.object as Stripe.Checkout.Session,
+          PaymentStatus.EXPIRED,
+          event.id
+        );
+      default:
+        return { action: "ignored" };
+    }
+  }
+
+  private async updateCheckoutSessionPayment(
+    session: Stripe.Checkout.Session,
+    status: PaymentStatus,
+    eventId: string
+  ) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { providerRef: session.id },
+      select: { id: true }
+    });
+
+    if (!payment) {
+      return { action: "payment_not_found", sessionId: session.id };
+    }
+
+    const cartId = session.client_reference_id ?? session.metadata?.cartId ?? null;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status,
+          rawEventId: eventId
+        }
+      });
+
+      if (status === PaymentStatus.PAID && cartId) {
+        await tx.cart.updateMany({
+          where: {
+            id: cartId,
+            status: CartStatus.ACTIVE
+          },
+          data: { status: CartStatus.CHECKED_OUT }
+        });
+      }
+    });
+
+    return {
+      action: "payment_updated",
+      sessionId: session.id,
+      paymentStatus: status
+    };
+  }
+
   private findCheckoutCart(userId: string) {
     return this.prisma.cart.findFirst({
       where: {
@@ -205,6 +407,14 @@ function getStripeImages(images: Array<{ url: string }>) {
   const imageUrl = images[0]?.url;
 
   return imageUrl && /^https?:\/\//i.test(imageUrl) ? [imageUrl] : undefined;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown webhook processing error.";
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 function normalizeUrl(url: string) {

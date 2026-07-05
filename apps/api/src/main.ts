@@ -2,7 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
 import { ValidationPipe } from "@nestjs/common";
 import { ExpressAdapter } from "@nestjs/platform-express";
-import { json, urlencoded } from "express";
+import { json, Request, Response, urlencoded } from "express";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
@@ -20,7 +20,7 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.setGlobalPrefix("api");
-  app.use(json({ limit: "10mb" }));
+  app.use(json({ limit: "10mb", verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: "10mb" }));
   app.enableCors({
     origin: corsOrigin,
@@ -40,5 +40,12 @@ async function bootstrap() {
   await app.listen(port);
 }
 
-void bootstrap();
+function captureRawBody(req: Request & { rawBody?: Buffer }, _res: Response, buffer: Buffer) {
+  const route = req.originalUrl.split("?")[0];
 
+  if (route === "/api/checkout/webhooks/stripe") {
+    req.rawBody = Buffer.from(buffer);
+  }
+}
+
+void bootstrap();
