@@ -1,12 +1,16 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { CartStatus, ProductStatus, SellerStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { CartCacheService } from "./cart-cache.service";
 import { AddCartItemDto } from "./dto/add-cart-item.dto";
 import { UpdateCartItemDto } from "./dto/update-cart-item.dto";
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CartCacheService
+  ) {}
 
   async getCart(userId: string) {
     const cart = await this.getOrCreateActiveCart(userId);
@@ -15,9 +19,36 @@ export class CartService {
   }
 
   async getCartSummary(userId: string) {
-    const cart = await this.getOrCreateActiveCart(userId);
+    const cachedSummary = await this.cache.getSummary<FormattedCart>(userId);
 
-    return this.findCartById(cart.id);
+    if (cachedSummary) {
+      return cachedSummary;
+    }
+
+    const cart = await this.getOrCreateActiveCart(userId);
+    const summary = await this.findCartById(cart.id);
+
+    await Promise.all([
+      this.cache.setSummary(userId, summary),
+      this.cache.setCount(userId, summary.totals.totalQuantity)
+    ]);
+
+    return summary;
+  }
+
+  async getCartCount(userId: string) {
+    const cachedCount = await this.cache.getCount(userId);
+
+    if (cachedCount !== null) {
+      return { totalQuantity: cachedCount };
+    }
+
+    const cart = await this.getOrCreateActiveCart(userId);
+    const count = await this.calculateCartCount(cart.id);
+
+    await this.cache.setCount(userId, count);
+
+    return { totalQuantity: count };
   }
 
   async addItem(userId: string, dto: AddCartItemDto) {
@@ -53,6 +84,8 @@ export class CartService {
       });
     }
 
+    await this.cache.invalidate(userId);
+
     return this.findCartById(cart.id);
   }
 
@@ -67,6 +100,7 @@ export class CartService {
       where: { id: item.id },
       data: { quantity: dto.quantity }
     });
+    await this.cache.invalidate(userId);
 
     return this.findCartById(cart.id);
   }
@@ -84,6 +118,8 @@ export class CartService {
       throw new NotFoundException("Cart item was not found.");
     }
 
+    await this.cache.invalidate(userId);
+
     return this.findCartById(cart.id);
   }
 
@@ -91,6 +127,7 @@ export class CartService {
     const cart = await this.getActiveCartOrThrow(userId);
 
     await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    await this.cache.invalidate(userId);
 
     return this.findCartById(cart.id);
   }
@@ -120,6 +157,15 @@ export class CartService {
     }
 
     return cart;
+  }
+
+  private calculateCartCount(cartId: string) {
+    return this.prisma.cartItem
+      .aggregate({
+        where: { cartId },
+        _sum: { quantity: true }
+      })
+      .then((result) => result._sum.quantity ?? 0);
   }
 
   private async findPurchasableProduct(productId: string) {
@@ -285,6 +331,8 @@ type SelectedCart = {
     };
   }>;
 };
+
+type FormattedCart = ReturnType<typeof formatCart>;
 
 function formatCart(cart: SelectedCart) {
   const recalculatedAt = new Date();
