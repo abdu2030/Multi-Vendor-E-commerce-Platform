@@ -16,6 +16,11 @@ export class CartController {
     return this.cartService.getCart(user.id);
   }
 
+  @Get("summary")
+  getCartSummary(@CurrentUser() user: AuthenticatedUser) {
+    return this.cartService.getCartSummary(user.id);
+  }
+
   @Post("items")
   addItem(@CurrentUser() user: AuthenticatedUser, @Body() dto: AddCartItemDto) {
     return this.cartService.addItem(user.id, dto);

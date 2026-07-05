@@ -14,6 +14,12 @@ export class CartService {
     return this.findCartById(cart.id);
   }
 
+  async getCartSummary(userId: string) {
+    const cart = await this.getOrCreateActiveCart(userId);
+
+    return this.findCartById(cart.id);
+  }
+
   async addItem(userId: string, dto: AddCartItemDto) {
     const [cart, product] = await Promise.all([
       this.getOrCreateActiveCart(userId),
@@ -54,6 +60,7 @@ export class CartService {
     const cart = await this.getActiveCartOrThrow(userId);
     const item = await this.findOwnedCartItem(cart.id, itemId);
 
+    assertCartItemStillPurchasable(item.product);
     assertStockAvailable(item.product.stockQuantity, dto.quantity);
 
     await this.prisma.cartItem.update({
@@ -153,7 +160,19 @@ export class CartService {
         id: true,
         product: {
           select: {
-            stockQuantity: true
+            status: true,
+            stockQuantity: true,
+            category: {
+              select: { isActive: true }
+            },
+            store: {
+              select: {
+                status: true,
+                sellerProfile: {
+                  select: { status: true }
+                }
+              }
+            }
           }
         }
       }
@@ -202,14 +221,21 @@ const cartSelect = {
             select: {
               id: true,
               name: true,
-              slug: true
+              slug: true,
+              isActive: true
             }
           },
           store: {
             select: {
               id: true,
               name: true,
-              slug: true
+              slug: true,
+              status: true,
+              sellerProfile: {
+                select: {
+                  status: true
+                }
+              }
             }
           },
           images: {
@@ -227,8 +253,6 @@ const cartSelect = {
     }
   }
 } as const;
-
-type CartWithItems = Awaited<ReturnType<PrismaService["cart"]["findUniqueOrThrow"]>>;
 
 type SelectedCart = {
   id: string;
@@ -249,35 +273,73 @@ type SelectedCart = {
       currency: string;
       stockQuantity: number;
       status: ProductStatus;
-      category: { id: string; name: string; slug: string };
-      store: { id: string; name: string; slug: string };
+      category: { id: string; name: string; slug: string; isActive: boolean };
+      store: {
+        id: string;
+        name: string;
+        slug: string;
+        status: SellerStatus;
+        sellerProfile: { status: SellerStatus };
+      };
       images: Array<{ id: string; url: string; altText: string | null; sortOrder: number }>;
     };
   }>;
 };
 
 function formatCart(cart: SelectedCart) {
-  const items = cart.items.map((item) => ({
-    id: item.id,
-    quantity: item.quantity,
-    lineTotalCents: item.quantity * item.product.priceCents,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-    product: {
-      id: item.product.id,
-      title: item.product.title,
-      slug: item.product.slug,
-      priceCents: item.product.priceCents,
-      currency: item.product.currency,
-      stockQuantity: item.product.stockQuantity,
-      status: item.product.status,
-      category: item.product.category,
-      store: item.product.store,
-      image: item.product.images[0] ?? null
-    }
-  }));
+  const recalculatedAt = new Date();
+  const items = cart.items.map((item) => {
+    const validation = getCartItemValidation(item);
+    const unitPriceCents = item.product.priceCents;
+    const lineTotalCents = item.quantity * unitPriceCents;
+
+    return {
+      id: item.id,
+      quantity: item.quantity,
+      lineTotalCents,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      product: {
+        id: item.product.id,
+        title: item.product.title,
+        slug: item.product.slug,
+        priceCents: unitPriceCents,
+        currency: item.product.currency,
+        stockQuantity: item.product.stockQuantity,
+        status: item.product.status,
+        category: {
+          id: item.product.category.id,
+          name: item.product.category.name,
+          slug: item.product.category.slug
+        },
+        store: {
+          id: item.product.store.id,
+          name: item.product.store.name,
+          slug: item.product.store.slug
+        },
+        image: item.product.images[0] ?? null
+      },
+      pricing: {
+        unitPriceCents,
+        lineTotalCents,
+        currency: item.product.currency,
+        recalculatedAt
+      },
+      stock: {
+        requestedQuantity: item.quantity,
+        availableQuantity: item.product.stockQuantity,
+        isInStock: item.product.stockQuantity > 0,
+        hasEnoughStock: item.quantity <= item.product.stockQuantity
+      },
+      validation
+    };
+  });
   const subtotalCents = items.reduce((total, item) => total + item.lineTotalCents, 0);
   const totalQuantity = items.reduce((total, item) => total + item.quantity, 0);
+  const invalidItemCount = items.filter((item) => !item.validation.isPurchasable).length;
+  const hasStockIssues = items.some((item) =>
+    item.validation.issues.some((issue) => issue.code === "INSUFFICIENT_STOCK" || issue.code === "OUT_OF_STOCK")
+  );
 
   return {
     id: cart.id,
@@ -289,8 +351,61 @@ function formatCart(cart: SelectedCart) {
     totals: {
       subtotalCents,
       itemCount: items.length,
-      totalQuantity
+      totalQuantity,
+      invalidItemCount,
+      hasStockIssues,
+      currency: items[0]?.product.currency ?? null,
+      recalculatedAt
     }
+  };
+}
+
+function getCartItemValidation(item: SelectedCart["items"][number]) {
+  const issues: Array<{ code: string; message: string }> = [];
+
+  if (item.product.status !== ProductStatus.APPROVED) {
+    issues.push({
+      code: "PRODUCT_UNAVAILABLE",
+      message: "Product is no longer approved for purchase."
+    });
+  }
+
+  if (!item.product.category.isActive) {
+    issues.push({
+      code: "CATEGORY_INACTIVE",
+      message: "Product category is currently inactive."
+    });
+  }
+
+  if (item.product.store.status !== SellerStatus.APPROVED) {
+    issues.push({
+      code: "STORE_UNAVAILABLE",
+      message: "Store is no longer approved for selling."
+    });
+  }
+
+  if (item.product.store.sellerProfile.status !== SellerStatus.APPROVED) {
+    issues.push({
+      code: "SELLER_UNAVAILABLE",
+      message: "Seller account is no longer approved."
+    });
+  }
+
+  if (item.product.stockQuantity < 1) {
+    issues.push({
+      code: "OUT_OF_STOCK",
+      message: "Product is out of stock."
+    });
+  } else if (item.quantity > item.product.stockQuantity) {
+    issues.push({
+      code: "INSUFFICIENT_STOCK",
+      message: "Requested quantity exceeds available stock."
+    });
+  }
+
+  return {
+    isPurchasable: issues.length === 0,
+    issues
   };
 }
 
@@ -301,5 +416,21 @@ function assertStockAvailable(stockQuantity: number, requestedQuantity: number) 
 
   if (requestedQuantity > stockQuantity) {
     throw new ConflictException("Requested quantity exceeds available stock.");
+  }
+}
+
+function assertCartItemStillPurchasable(product: {
+  status: ProductStatus;
+  stockQuantity: number;
+  category: { isActive: boolean };
+  store: { status: SellerStatus; sellerProfile: { status: SellerStatus } };
+}) {
+  if (
+    product.status !== ProductStatus.APPROVED ||
+    !product.category.isActive ||
+    product.store.status !== SellerStatus.APPROVED ||
+    product.store.sellerProfile.status !== SellerStatus.APPROVED
+  ) {
+    throw new ConflictException("Product is no longer available for purchase.");
   }
 }
