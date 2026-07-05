@@ -168,6 +168,7 @@ function Header() {
         <nav className="flex items-center gap-4 text-sm font-bold">
           <Link className="text-stone-500 transition hover:text-stone-950" href="/">Home</Link>
           <Link className="text-emerald-700" href="/products">Products</Link>
+          <Link className="text-stone-500 transition hover:text-stone-950" href="/cart">Cart</Link>
           <Link className="rounded-xl bg-stone-950 px-4 py-2 text-white transition hover:bg-stone-700" href="/login">Sign in</Link>
         </nav>
       </div>
