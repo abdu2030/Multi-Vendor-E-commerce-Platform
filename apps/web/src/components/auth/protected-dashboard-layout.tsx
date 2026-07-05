@@ -9,10 +9,12 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  CreditCard,
   Package,
   Settings,
   Shield,
   ShoppingBag,
+  ShoppingCart,
   Users,
   X,
 } from "@/components/imported/design-icons";
@@ -39,6 +41,24 @@ const navigation: NavigationItem[] = [
     label: "Profile",
     description: "Protected account",
     Icon: Users,
+  },
+  {
+    href: "/products",
+    label: "Products",
+    description: "Browse marketplace",
+    Icon: ShoppingBag,
+  },
+  {
+    href: "/cart",
+    label: "Cart",
+    description: "Buyer basket",
+    Icon: ShoppingCart,
+  },
+  {
+    href: "/checkout",
+    label: "Checkout",
+    description: "Address and payment",
+    Icon: CreditCard,
   },
   {
     href: "/dashboard/seller/apply",

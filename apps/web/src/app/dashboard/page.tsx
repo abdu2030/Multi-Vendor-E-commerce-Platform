@@ -5,9 +5,9 @@ import type React from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   ArrowRight,
-  BadgeCheck,
-  Package,
   Shield,
+  ShoppingBag,
+  ShoppingCart,
   Users,
 } from "@/components/imported/design-icons";
 
@@ -26,22 +26,21 @@ export default function DashboardPage() {
               Welcome back, {user?.fullName}.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-stone-500">
-              Your account, seller onboarding, and protected marketplace tools
-              now live in one Marketo workspace.
+              Browse approved products, manage your cart, check out securely, and open seller tools from one Marketo workspace.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 className="inline-flex h-12 items-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-700"
-                href="/dashboard/seller/status"
+                href="/products"
               >
-                Seller status
+                Browse products
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 className="inline-flex h-12 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-5 text-sm font-extrabold text-stone-700 transition-colors hover:border-stone-300"
-                href="/dashboard/profile"
+                href="/cart"
               >
-                View profile
+                View cart
               </Link>
             </div>
           </div>
@@ -67,8 +66,8 @@ export default function DashboardPage() {
           label="Role"
           value={user?.role.replace("_", " ") ?? "Buyer"}
         />
-        <MetricCard Icon={Package} label="Seller flow" value="Connected" />
-        <MetricCard Icon={BadgeCheck} label="Auth status" value="Active" />
+        <MetricCard Icon={ShoppingBag} label="Marketplace" value="Products" />
+        <MetricCard Icon={ShoppingCart} label="Cart" value="Ready" />
       </div>
     </div>
   );
