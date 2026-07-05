@@ -8,6 +8,7 @@ import { AdminProductsModule } from "./modules/admin-products/admin-products.mod
 import { AuthModule } from "./modules/auth/auth.module";
 import { CartModule } from "./modules/cart/cart.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
+import { CheckoutModule } from "./modules/checkout/checkout.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ProductsModule } from "./modules/products/products.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
@@ -25,6 +26,7 @@ import { UsersModule } from "./modules/users/users.module";
     PrismaModule,
     AuthModule,
     CartModule,
+    CheckoutModule,
     CategoriesModule,
     AdminCategoriesModule,
     AdminSellerApplicationsModule,
@@ -39,4 +41,3 @@ import { UsersModule } from "./modules/users/users.module";
   controllers: [AppController]
 })
 export class AppModule {}
-
