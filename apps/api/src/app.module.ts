@@ -6,6 +6,7 @@ import { AdminCategoriesModule } from "./modules/admin-categories/admin-categori
 import { AdminSellerApplicationsModule } from "./modules/admin-seller-applications/admin-seller-applications.module";
 import { AdminProductsModule } from "./modules/admin-products/admin-products.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { CartModule } from "./modules/cart/cart.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ProductsModule } from "./modules/products/products.module";
@@ -23,6 +24,7 @@ import { UsersModule } from "./modules/users/users.module";
     }),
     PrismaModule,
     AuthModule,
+    CartModule,
     CategoriesModule,
     AdminCategoriesModule,
     AdminSellerApplicationsModule,
