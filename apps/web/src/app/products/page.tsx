@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import {
   ArrowRight,
@@ -13,6 +14,8 @@ import { getCategories } from "@/lib/categories";
 import { PublicProduct, getPublicProducts } from "@/lib/public-products";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 type ProductsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -28,6 +31,7 @@ const sortOptions = [
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
+  noStore();
   const params = await searchParams;
   const query = toProductQuery(params);
   const [productsResult, categoriesResult] = await Promise.allSettled([
@@ -349,7 +353,13 @@ function getString(value: string | string[] | undefined) {
 }
 
 function dollarsToCents(value: string) {
-  const number = Number(value);
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const number = Number(trimmed);
 
   return Number.isFinite(number) && number >= 0
     ? Math.round(number * 100)

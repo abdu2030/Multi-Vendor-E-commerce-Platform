@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { ProductPurchaseActions } from "@/components/products/product-purchase-actions";
 import { notFound } from "next/navigation";
@@ -15,6 +16,8 @@ import {
 import { getPublicProduct } from "@/lib/public-products";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -23,6 +26,7 @@ type ProductDetailPageProps = {
 export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
+  noStore();
   const { slug } = await params;
   const product = await getProductOrNotFound(slug);
   const mainImage = product.images[0] ?? product.image;

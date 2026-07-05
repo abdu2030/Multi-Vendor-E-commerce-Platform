@@ -8,6 +8,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
 
 type RequestOptions = RequestInit & {
   token?: string | null;
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}) {
@@ -23,6 +27,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
 
   const response = await fetch(`${API_URL}${path}`, {
     cache: options.cache ?? "no-store",
+    next: options.next ?? { revalidate: 0 },
     ...options,
     headers
   }).catch(() => {
