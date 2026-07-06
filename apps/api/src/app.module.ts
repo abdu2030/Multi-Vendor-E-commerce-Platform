@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { CartModule } from "./modules/cart/cart.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { CheckoutModule } from "./modules/checkout/checkout.module";
+import { OrdersModule } from "./modules/orders/orders.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ProductsModule } from "./modules/products/products.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
@@ -27,6 +28,7 @@ import { UsersModule } from "./modules/users/users.module";
     AuthModule,
     CartModule,
     CheckoutModule,
+    OrdersModule,
     CategoriesModule,
     AdminCategoriesModule,
     AdminSellerApplicationsModule,

@@ -35,7 +35,7 @@ export function CheckoutSuccessClient() {
           </div>
           <h1 className="mt-6 text-3xl font-extrabold tracking-tight text-stone-950">Payment session completed</h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-stone-500">
-            Stripe returned you to the marketplace. Order creation and webhook confirmation are the next checkout milestone.
+            Stripe returned you to the marketplace. Your order will appear in order history after the Stripe webhook confirms payment.
           </p>
           {sessionId ? (
             <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-left text-xs font-bold text-stone-500">

@@ -15,6 +15,7 @@ import {
   Shield,
   ShoppingBag,
   ShoppingCart,
+  Truck,
   Users,
   X,
 } from "@/components/imported/design-icons";
@@ -53,6 +54,12 @@ const navigation: NavigationItem[] = [
     label: "Cart",
     description: "Buyer basket",
     Icon: ShoppingCart,
+  },
+  {
+    href: "/dashboard/orders",
+    label: "Orders",
+    description: "Purchase history",
+    Icon: Truck,
   },
   {
     href: "/checkout",
@@ -330,6 +337,10 @@ function pageTitle(pathname: string) {
 
   if (pathname.includes("/seller")) {
     return "Seller dashboard";
+  }
+
+  if (pathname.includes("/orders")) {
+    return "Orders";
   }
 
   if (pathname.includes("/profile")) {

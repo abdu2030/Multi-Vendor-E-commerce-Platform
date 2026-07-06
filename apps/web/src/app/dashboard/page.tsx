@@ -7,7 +7,7 @@ import {
   ArrowRight,
   Shield,
   ShoppingBag,
-  ShoppingCart,
+  Truck,
   Users,
 } from "@/components/imported/design-icons";
 
@@ -42,6 +42,12 @@ export default function DashboardPage() {
               >
                 View cart
               </Link>
+              <Link
+                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-5 text-sm font-extrabold text-stone-700 transition-colors hover:border-stone-300"
+                href="/dashboard/orders"
+              >
+                Orders
+              </Link>
             </div>
           </div>
           <div className="rounded-3xl bg-stone-900 p-5 text-white">
@@ -67,7 +73,7 @@ export default function DashboardPage() {
           value={user?.role.replace("_", " ") ?? "Buyer"}
         />
         <MetricCard Icon={ShoppingBag} label="Marketplace" value="Products" />
-        <MetricCard Icon={ShoppingCart} label="Cart" value="Ready" />
+        <MetricCard Icon={Truck} label="Orders" value="Tracked" />
       </div>
     </div>
   );
