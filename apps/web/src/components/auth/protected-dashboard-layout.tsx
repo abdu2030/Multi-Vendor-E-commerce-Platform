@@ -323,6 +323,10 @@ function pageTitle(pathname: string) {
     return "Seller approvals";
   }
 
+  if (pathname.includes("/seller/orders")) {
+    return "Seller orders";
+  }
+
   if (pathname.includes("/seller/settings")) {
     return "Store settings";
   }

@@ -10,11 +10,13 @@ import {
   Package,
   Settings,
   ShoppingBag,
+  Truck,
 } from "@/components/imported/design-icons";
 
 const sellerNavigation = [
   { href: "/dashboard/seller", label: "Overview", Icon: LayoutDashboard },
   { href: "/dashboard/seller/products", label: "Products", Icon: ShoppingBag },
+  { href: "/dashboard/seller/orders", label: "Orders", Icon: Truck },
   { href: "/dashboard/seller/settings", label: "Store settings", Icon: Settings },
   { href: "/dashboard/seller/status", label: "Application status", Icon: Package },
 ];
@@ -58,7 +60,9 @@ export function SellerDashboardShell({ children }: { children: ReactNode }) {
         </p>
         <nav aria-label="Seller dashboard" className="mt-4 grid gap-1">
           {sellerNavigation.map(({ href, label, Icon }) => {
-            const active = pathname === href;
+            const active = href === "/dashboard/seller"
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
 
             return (
               <Link
@@ -81,4 +85,3 @@ export function SellerDashboardShell({ children }: { children: ReactNode }) {
     </section>
   );
 }
-

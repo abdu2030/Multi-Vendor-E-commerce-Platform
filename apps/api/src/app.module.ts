@@ -14,6 +14,7 @@ import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ProductsModule } from "./modules/products/products.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
 import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
+import { SellerOrdersModule } from "./modules/seller-orders/seller-orders.module";
 import { SellerProductsModule } from "./modules/seller-products/seller-products.module";
 import { SellerUploadsModule } from "./modules/seller-uploads/seller-uploads.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -35,6 +36,7 @@ import { UsersModule } from "./modules/users/users.module";
     AdminProductsModule,
     SellerApplicationsModule,
     SellerDashboardModule,
+    SellerOrdersModule,
     SellerProductsModule,
     ProductsModule,
     SellerUploadsModule,
