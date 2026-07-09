@@ -10,10 +10,17 @@ import {
   Clock,
   Package,
   RefreshCw,
+  Save,
   ShoppingBag,
   Truck,
 } from "@/components/imported/design-icons";
-import { getSellerOrders, SellerFulfillmentStatus, SellerOrderItem, SellerOrdersResponse } from "@/lib/seller-orders";
+import {
+  getSellerOrders,
+  SellerFulfillmentStatus,
+  SellerOrderItem,
+  SellerOrdersResponse,
+  updateSellerOrderFulfillment,
+} from "@/lib/seller-orders";
 
 const statusOptions: Array<{ label: string; value: SellerFulfillmentStatus | "" }> = [
   { label: "All statuses", value: "" },
@@ -25,12 +32,46 @@ const statusOptions: Array<{ label: string; value: SellerFulfillmentStatus | "" 
   { label: "Refunded", value: "REFUNDED" },
 ];
 
+const editableStatusOptions: Array<{ label: string; value: SellerFulfillmentStatus }> = [
+  { label: "Paid", value: "PAID" },
+  { label: "Processing", value: "PROCESSING" },
+  { label: "Shipped", value: "SHIPPED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
+
+type FulfillmentDraft = {
+  status: SellerFulfillmentStatus;
+  trackingNumber: string;
+};
+
 export function SellerOrderDashboard() {
   const { accessToken } = useAuth();
   const [status, setStatus] = useState<SellerFulfillmentStatus | "">("");
   const [orders, setOrders] = useState<SellerOrdersResponse | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, FulfillmentDraft>>({});
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  const setOrderResponse = useCallback((response: SellerOrdersResponse) => {
+    setOrders(response);
+    setDrafts((current) => {
+      const next: Record<string, FulfillmentDraft> = {};
+
+      for (const item of response.items) {
+        next[item.id] = current[item.id] ?? {
+          status: editableStatusOptions.some((option) => option.value === item.sellerFulfillmentStatus)
+            ? item.sellerFulfillmentStatus
+            : "PAID",
+          trackingNumber: item.trackingNumber ?? "",
+        };
+      }
+
+      return next;
+    });
+  }, []);
 
   const loadOrders = useCallback(async () => {
     if (!accessToken) {
@@ -42,13 +83,13 @@ export function SellerOrderDashboard() {
     setError("");
 
     try {
-      setOrders(await getSellerOrders(accessToken, status || undefined));
+      setOrderResponse(await getSellerOrders(accessToken, status || undefined));
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Seller orders could not load.");
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, status]);
+  }, [accessToken, setOrderResponse, status]);
 
   useEffect(() => {
     void loadOrders();
@@ -58,6 +99,50 @@ export function SellerOrderDashboard() {
     () => orders?.items.filter((item) => !["CANCELLED", "REFUNDED"].includes(item.sellerFulfillmentStatus)).length ?? 0,
     [orders],
   );
+
+  function updateDraft(itemId: string, patch: Partial<FulfillmentDraft>) {
+    setDrafts((current) => ({
+      ...current,
+      [itemId]: {
+        ...current[itemId],
+        ...patch,
+      },
+    }));
+  }
+
+  async function saveFulfillment(item: SellerOrderItem) {
+    if (!accessToken || pendingItemId) {
+      return;
+    }
+
+    const draft = drafts[item.id];
+
+    if (!draft) {
+      return;
+    }
+
+    if (draft.status === "SHIPPED" && !draft.trackingNumber.trim()) {
+      setError("Tracking number is required before marking an item as shipped.");
+      return;
+    }
+
+    setPendingItemId(item.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await updateSellerOrderFulfillment(accessToken, item.id, {
+        status: draft.status,
+        trackingNumber: draft.trackingNumber,
+      });
+      setSuccess(`Updated ${item.productTitle}.`);
+      setOrderResponse(await getSellerOrders(accessToken, status || undefined));
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Fulfillment update failed.");
+    } finally {
+      setPendingItemId(null);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -75,6 +160,12 @@ export function SellerOrderDashboard() {
           {error}
         </p>
       ) : null}
+      {success ? (
+        <p className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          {success}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard Icon={ShoppingBag} label="Order items" value={orders?.metrics.orderItems ?? 0} />
@@ -90,7 +181,7 @@ export function SellerOrderDashboard() {
             </p>
             <h2 className="mt-1 text-2xl font-extrabold text-stone-900">Seller order items</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-500">
-              This view only includes products sold by your store. Other seller items from the same buyer order are not returned by the API.
+              Update fulfillment status and tracking numbers for the items sold by your store only.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -121,7 +212,14 @@ export function SellerOrderDashboard() {
         {orders?.items.length ? (
           <div className="divide-y divide-stone-100">
             {orders.items.map((item) => (
-              <SellerOrderRow item={item} key={item.id} />
+              <SellerOrderRow
+                draft={drafts[item.id]}
+                isPending={pendingItemId === item.id}
+                item={item}
+                key={item.id}
+                onDraftChange={(patch) => updateDraft(item.id, patch)}
+                onSave={() => void saveFulfillment(item)}
+              />
             ))}
           </div>
         ) : null}
@@ -130,9 +228,26 @@ export function SellerOrderDashboard() {
   );
 }
 
-function SellerOrderRow({ item }: { item: SellerOrderItem }) {
+function SellerOrderRow({
+  draft,
+  isPending,
+  item,
+  onDraftChange,
+  onSave,
+}: {
+  draft?: FulfillmentDraft;
+  isPending: boolean;
+  item: SellerOrderItem;
+  onDraftChange: (patch: Partial<FulfillmentDraft>) => void;
+  onSave: () => void;
+}) {
+  const hasChanges = Boolean(
+    draft &&
+      (draft.status !== item.sellerFulfillmentStatus || draft.trackingNumber.trim() !== (item.trackingNumber ?? "")),
+  );
+
   return (
-    <article className="grid gap-4 p-5 transition-colors hover:bg-stone-50/70 lg:grid-cols-[72px_minmax(0,1fr)_auto] lg:items-center">
+    <article className="grid gap-4 p-5 transition-colors hover:bg-stone-50/70 xl:grid-cols-[72px_minmax(0,1fr)_360px] xl:items-center">
       <Link className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-stone-100" href={`/products/${item.product.slug}`}>
         {item.productImage ? (
           <img alt={item.productTitle} className="h-full w-full object-cover" src={item.productImage} />
@@ -145,6 +260,11 @@ function SellerOrderRow({ item }: { item: SellerOrderItem }) {
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-extrabold text-stone-900">{item.productTitle}</h3>
           <StatusBadge status={item.sellerFulfillmentStatus} />
+          {item.trackingNumber ? (
+            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-extrabold text-stone-500">
+              {item.trackingNumber}
+            </span>
+          ) : null}
         </div>
         <p className="mt-1 text-xs font-bold text-stone-400">
           {item.order.orderNumber} / {formatDate(item.order.placedAt)} / {item.buyer.fullName}
@@ -156,14 +276,50 @@ function SellerOrderRow({ item }: { item: SellerOrderItem }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 lg:justify-end">
-        <Link
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs font-extrabold text-stone-700 transition hover:border-stone-300"
-          href={`/products/${item.product.slug}`}
-        >
-          Product
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+      <div className="grid gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <label className="grid gap-1.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-stone-400">Status</span>
+            <select
+              className={inputClass}
+              onChange={(event) => onDraftChange({ status: event.target.value as SellerFulfillmentStatus })}
+              value={draft?.status ?? item.sellerFulfillmentStatus}
+            >
+              {editableStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-stone-400">Tracking number</span>
+            <input
+              className={inputClass}
+              onChange={(event) => onDraftChange({ trackingNumber: event.target.value })}
+              placeholder="Carrier tracking ID"
+              value={draft?.trackingNumber ?? item.trackingNumber ?? ""}
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-500"
+            disabled={!hasChanges || isPending}
+            onClick={onSave}
+            type="button"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {isPending ? "Saving" : "Save"}
+          </button>
+          <Link
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs font-extrabold text-stone-700 transition hover:border-stone-300"
+            href={`/products/${item.product.slug}`}
+          >
+            Product
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     </article>
   );
@@ -226,6 +382,9 @@ function InfoPill({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const inputClass =
+  "h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm font-bold text-stone-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10";
 
 function formatMoney(cents: number, currency: string) {
   return new Intl.NumberFormat("en-US", {

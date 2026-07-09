@@ -1,10 +1,19 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { OrderStatus, SellerStatus } from "@prisma/client";
+import { OrderStatus, Prisma, SellerStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { UpdateSellerOrderFulfillmentDto } from "./dto/update-seller-order-fulfillment.dto";
 
 type SellerOrderFilters = {
   status?: OrderStatus;
 };
+
+const sellerManagedStatuses = new Set<OrderStatus>([
+  OrderStatus.PAID,
+  OrderStatus.PROCESSING,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+  OrderStatus.CANCELLED
+]);
 
 @Injectable()
 export class SellerOrdersService {
@@ -31,23 +40,7 @@ export class SellerOrdersService {
         name: store.name,
         slug: store.slug
       },
-      items: items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productTitle: item.productTitle,
-        productImage: item.productImage,
-        unitPriceCents: item.unitPriceCents,
-        quantity: item.quantity,
-        totalCents: item.totalCents,
-        sellerFulfillmentStatus: item.sellerFulfillmentStatus,
-        trackingNumber: item.trackingNumber,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-        product: item.product,
-        order: item.order,
-        buyer: item.order.buyer,
-        payment: item.order.payment
-      })),
+      items: items.map(formatSellerOrderItem),
       metrics: {
         orderItems: items.length,
         orders: orderIds.size,
@@ -72,25 +65,82 @@ export class SellerOrdersService {
       throw new NotFoundException("Seller order item was not found.");
     }
 
-    return {
-      id: item.id,
-      productId: item.productId,
-      productTitle: item.productTitle,
-      productImage: item.productImage,
-      unitPriceCents: item.unitPriceCents,
-      quantity: item.quantity,
-      totalCents: item.totalCents,
-      sellerFulfillmentStatus: item.sellerFulfillmentStatus,
-      trackingNumber: item.trackingNumber,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      product: item.product,
-      store: item.store,
-      order: item.order,
-      buyer: item.order.buyer,
-      payment: item.order.payment,
-      shippingAddress: item.order.shippingAddress
-    };
+    return formatSellerOrderItemDetail(item);
+  }
+
+  async updateFulfillment(userId: string, itemId: string, dto: UpdateSellerOrderFulfillmentDto) {
+    if (!sellerManagedStatuses.has(dto.status)) {
+      throw new BadRequestException("Sellers can set paid, processing, shipped, delivered, or cancelled fulfillment status.");
+    }
+
+    const trackingNumber = normalizeTrackingNumber(dto.trackingNumber);
+
+    if (dto.status === OrderStatus.SHIPPED && !trackingNumber) {
+      throw new BadRequestException("Tracking number is required when marking an item as shipped.");
+    }
+
+    const store = await this.findApprovedStore(userId);
+    const existingItem = await this.prisma.orderItem.findFirst({
+      where: {
+        id: itemId,
+        storeId: store.id
+      },
+      select: {
+        id: true,
+        orderId: true,
+        sellerFulfillmentStatus: true,
+        trackingNumber: true
+      }
+    });
+
+    if (!existingItem) {
+      throw new NotFoundException("Seller order item was not found.");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.orderItem.update({
+        where: { id: itemId },
+        data: {
+          sellerFulfillmentStatus: dto.status,
+          trackingNumber
+        }
+      });
+
+      const nextOrderStatus = await calculateOrderStatus(tx, existingItem.orderId);
+
+      await tx.order.update({
+        where: { id: existingItem.orderId },
+        data: { status: nextOrderStatus }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: userId,
+          action: "SELLER_ORDER_FULFILLMENT_UPDATED",
+          entity: "OrderItem",
+          entityId: itemId,
+          metadata: {
+            orderId: existingItem.orderId,
+            storeId: store.id,
+            status: {
+              from: existingItem.sellerFulfillmentStatus,
+              to: dto.status
+            },
+            trackingNumber: {
+              from: existingItem.trackingNumber,
+              to: trackingNumber
+            }
+          }
+        }
+      });
+
+      const updatedItem = await tx.orderItem.findUniqueOrThrow({
+        where: { id: itemId },
+        select: sellerOrderItemDetailSelect
+      });
+
+      return formatSellerOrderItemDetail(updatedItem);
+    });
   }
 
   private async findApprovedStore(userId: string) {
@@ -198,6 +248,108 @@ const sellerOrderItemDetailSelect = {
   }
 } as const;
 
+type SellerOrderItemListRecord = {
+  id: string;
+  productId: string;
+  productTitle: string;
+  productImage: string | null;
+  unitPriceCents: number;
+  quantity: number;
+  totalCents: number;
+  sellerFulfillmentStatus: OrderStatus;
+  trackingNumber: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  product: { id: string; slug: string; status: string };
+  order: {
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    placedAt: Date;
+    buyer: { id: string; fullName: string; email: string };
+    payment: {
+      id: string;
+      status: string;
+      amountCents: number;
+      currency: string;
+      provider: string;
+    } | null;
+  };
+};
+
+type SellerOrderItemDetailRecord = SellerOrderItemListRecord & {
+  store: { id: string; name: string; slug: string };
+  order: SellerOrderItemListRecord["order"] & {
+    shippingAddress: unknown;
+    buyer: SellerOrderItemListRecord["order"]["buyer"] & { phone: string | null };
+    payment: (NonNullable<SellerOrderItemListRecord["order"]["payment"]> & {
+      providerRef: string;
+      createdAt: Date;
+    }) | null;
+  };
+};
+
+function formatSellerOrderItem(item: SellerOrderItemListRecord) {
+  return {
+    id: item.id,
+    productId: item.productId,
+    productTitle: item.productTitle,
+    productImage: item.productImage,
+    unitPriceCents: item.unitPriceCents,
+    quantity: item.quantity,
+    totalCents: item.totalCents,
+    sellerFulfillmentStatus: item.sellerFulfillmentStatus,
+    trackingNumber: item.trackingNumber,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    product: item.product,
+    order: {
+      id: item.order.id,
+      orderNumber: item.order.orderNumber,
+      status: item.order.status,
+      placedAt: item.order.placedAt
+    },
+    buyer: item.order.buyer,
+    payment: item.order.payment
+  };
+}
+
+function formatSellerOrderItemDetail(item: SellerOrderItemDetailRecord) {
+  return {
+    ...formatSellerOrderItem(item),
+    store: item.store,
+    buyer: item.order.buyer,
+    payment: item.order.payment,
+    shippingAddress: item.order.shippingAddress
+  };
+}
+
+async function calculateOrderStatus(tx: Prisma.TransactionClient, orderId: string) {
+  const items = await tx.orderItem.findMany({
+    where: { orderId },
+    select: { sellerFulfillmentStatus: true }
+  });
+  const statuses = items.map((item) => item.sellerFulfillmentStatus);
+
+  if (statuses.length > 0 && statuses.every((status) => status === OrderStatus.CANCELLED)) {
+    return OrderStatus.CANCELLED;
+  }
+
+  if (statuses.length > 0 && statuses.every((status) => status === OrderStatus.DELIVERED)) {
+    return OrderStatus.DELIVERED;
+  }
+
+  if (statuses.some((status) => status === OrderStatus.SHIPPED)) {
+    return OrderStatus.SHIPPED;
+  }
+
+  if (statuses.some((status) => status === OrderStatus.PROCESSING)) {
+    return OrderStatus.PROCESSING;
+  }
+
+  return OrderStatus.PAID;
+}
+
 function normalizeOptionalStatus(status?: OrderStatus) {
   if (!status) {
     return undefined;
@@ -208,4 +360,10 @@ function normalizeOptionalStatus(status?: OrderStatus) {
   }
 
   return status;
+}
+
+function normalizeTrackingNumber(value?: string) {
+  const normalized = value?.trim() ?? "";
+
+  return normalized || null;
 }

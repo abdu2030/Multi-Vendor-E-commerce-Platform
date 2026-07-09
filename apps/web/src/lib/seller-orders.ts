@@ -62,3 +62,20 @@ export function getSellerOrders(accessToken: string, status?: SellerFulfillmentS
     token: accessToken
   });
 }
+
+export type SellerOrderFulfillmentInput = {
+  status: SellerFulfillmentStatus;
+  trackingNumber?: string;
+};
+
+export function updateSellerOrderFulfillment(
+  accessToken: string,
+  itemId: string,
+  input: SellerOrderFulfillmentInput,
+) {
+  return apiRequest<SellerOrderItem>(`/seller/orders/${itemId}/fulfillment`, {
+    method: "PATCH",
+    token: accessToken,
+    body: JSON.stringify(input),
+  });
+}
