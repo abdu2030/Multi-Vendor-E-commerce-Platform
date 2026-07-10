@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { ProductPurchaseActions } from "@/components/products/product-purchase-actions";
+import { ProductReviewsPanel } from "@/components/reviews/product-reviews-panel";
 import { notFound } from "next/navigation";
 import {
   ArrowRight,
@@ -217,6 +218,13 @@ export default async function ProductDetailPage({
               </p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8">
+          <ProductReviewsPanel
+            productId={product.id}
+            productTitle={product.title}
+          />
         </div>
       </section>
     </main>

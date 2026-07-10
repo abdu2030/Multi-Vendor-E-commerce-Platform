@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   Truck,
 } from "@/components/imported/design-icons";
+import { ProductReviewsPanel } from "@/components/reviews/product-reviews-panel";
 import { BuyerOrderDetail, getBuyerOrder } from "@/lib/orders";
 import { formatDate, formatMoney, ProductThumb, StatusBadge } from "./order-history-client";
 
@@ -78,6 +79,8 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
     );
   }
 
+  const canReviewOrder = isReviewableOrderStatus(order.status);
+
   return (
     <div className="grid gap-6">
       <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm lg:p-8">
@@ -120,7 +123,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
           </div>
           <div className="divide-y divide-stone-100">
             {order.items.map((item) => (
-              <article className="grid gap-4 p-5 sm:grid-cols-[56px_minmax(0,1fr)_auto] sm:items-center sm:p-6" key={item.id}>
+              <article className="grid gap-4 p-5 sm:grid-cols-[56px_minmax(0,1fr)_auto] sm:items-start sm:p-6" key={item.id}>
                 <Link href={`/products/${item.product.slug}`}>
                   <ProductThumb image={item.productImage} title={item.productTitle} />
                 </Link>
@@ -142,6 +145,16 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
                   </p>
                   {item.trackingNumber ? (
                     <p className="mt-2 text-xs font-bold text-stone-500">Tracking {item.trackingNumber}</p>
+                  ) : null}
+                  {canReviewOrder ? (
+                    <div className="mt-4">
+                      <ProductReviewsPanel
+                        compact
+                        productId={item.productId}
+                        productTitle={item.productTitle}
+                        showList={false}
+                      />
+                    </div>
                   ) : null}
                 </div>
                 <div className="text-left sm:text-right">
@@ -203,6 +216,10 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
       </div>
     </div>
   );
+}
+
+function isReviewableOrderStatus(status: string) {
+  return ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(status);
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
