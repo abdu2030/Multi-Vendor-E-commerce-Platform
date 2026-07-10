@@ -16,6 +16,36 @@ type NotificationEmailInput = {
   dashboardUrl: string;
 };
 
+type SellerDecisionEmailInput = {
+  recipientName: string;
+  storeName: string;
+  decision: "approved" | "rejected" | "suspended";
+  reason?: string;
+  sellerDashboardUrl: string;
+};
+
+type OrderEmailInput = {
+  recipientName: string;
+  orderNumber: string;
+  itemCount: number;
+  totalCents: number;
+  currency: string;
+  orderUrl: string;
+};
+
+type SellerNewOrderEmailInput = OrderEmailInput & {
+  storeName: string;
+};
+
+type ShippingUpdateEmailInput = {
+  recipientName: string;
+  orderNumber: string;
+  productTitle: string;
+  status: "SHIPPED" | "DELIVERED";
+  trackingNumber?: string;
+  orderUrl: string;
+};
+
 export function renderWelcomeEmail(input: WelcomeEmailInput): EmailTemplate {
   const name = input.recipientName.trim() || "there";
   const subject = "Welcome to Marketo";
@@ -75,6 +105,159 @@ export function renderNotificationEmail(input: NotificationEmailInput): EmailTem
       actionUrl: input.dashboardUrl
     })
   };
+}
+
+export function renderSellerDecisionEmail(input: SellerDecisionEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const decisionCopy = {
+    approved: {
+      subject: `Your ${input.storeName} seller application was approved`,
+      eyebrow: "Seller application approved",
+      heading: "Your store is ready",
+      message: `${input.storeName} is approved. You can now manage your storefront and publish products.`
+    },
+    rejected: {
+      subject: `Update on your ${input.storeName} seller application`,
+      eyebrow: "Seller application update",
+      heading: "Your application needs attention",
+      message: `${input.storeName} was not approved at this time.`
+    },
+    suspended: {
+      subject: `${input.storeName} seller access was suspended`,
+      eyebrow: "Seller access update",
+      heading: "Your seller access is suspended",
+      message: `${input.storeName} cannot currently sell on Marketo.`
+    }
+  }[input.decision];
+  const body = [decisionCopy.message];
+
+  if (input.reason?.trim()) {
+    body.push(`Reason: ${input.reason.trim()}`);
+  }
+
+  return {
+    subject: decisionCopy.subject,
+    text: buildText(name, decisionCopy.heading, body, "Open seller dashboard", input.sellerDashboardUrl),
+    html: emailLayout({
+      preheader: decisionCopy.message,
+      eyebrow: decisionCopy.eyebrow,
+      heading: decisionCopy.heading,
+      greeting: `Hi ${name},`,
+      body,
+      actionLabel: "Open seller dashboard",
+      actionUrl: input.sellerDashboardUrl
+    })
+  };
+}
+
+export function renderOrderConfirmationEmail(input: OrderEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const subject = `Order ${input.orderNumber} confirmed`;
+  const body = [
+    "Your payment was successful and your order is now being prepared.",
+    `${formatItemCount(input.itemCount)} · ${formatMoney(input.totalCents, input.currency)}`
+  ];
+
+  return {
+    subject,
+    text: buildText(name, subject, body, "View order", input.orderUrl),
+    html: emailLayout({
+      preheader: `We received order ${input.orderNumber}.`,
+      eyebrow: "Order confirmed",
+      heading: `Thanks for your order, ${name}`,
+      body,
+      actionLabel: "View order",
+      actionUrl: input.orderUrl
+    })
+  };
+}
+
+export function renderSellerNewOrderEmail(input: SellerNewOrderEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const subject = `New order ${input.orderNumber} for ${input.storeName}`;
+  const body = [
+    "A customer has paid for items from your store. Review the order and begin fulfillment.",
+    `${formatItemCount(input.itemCount)} · ${formatMoney(input.totalCents, input.currency)}`
+  ];
+
+  return {
+    subject,
+    text: buildText(name, subject, body, "Manage order", input.orderUrl),
+    html: emailLayout({
+      preheader: `${input.storeName} received a new paid order.`,
+      eyebrow: "New paid order",
+      heading: "You have a new order",
+      greeting: `Hi ${name},`,
+      body,
+      actionLabel: "Manage order",
+      actionUrl: input.orderUrl
+    })
+  };
+}
+
+export function renderShippingUpdateEmail(input: ShippingUpdateEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const delivered = input.status === "DELIVERED";
+  const subject = delivered
+    ? `Order ${input.orderNumber} delivery update`
+    : `Order ${input.orderNumber} is on the way`;
+  const body = [
+    delivered
+      ? `${input.productTitle} was marked as delivered.`
+      : `${input.productTitle} has shipped.`
+  ];
+
+  if (input.trackingNumber?.trim()) {
+    body.push(`Tracking number: ${input.trackingNumber.trim()}`);
+  }
+
+  return {
+    subject,
+    text: buildText(name, subject, body, "View order", input.orderUrl),
+    html: emailLayout({
+      preheader: body[0],
+      eyebrow: delivered ? "Delivery update" : "Shipping update",
+      heading: delivered ? "Your delivery was updated" : "Your order is on the way",
+      greeting: `Hi ${name},`,
+      body,
+      actionLabel: "View order",
+      actionUrl: input.orderUrl
+    })
+  };
+}
+
+function buildText(
+  recipientName: string,
+  heading: string,
+  body: string[],
+  actionLabel: string,
+  actionUrl: string
+) {
+  return [
+    `Hi ${recipientName},`,
+    "",
+    heading,
+    ...body,
+    "",
+    `${actionLabel}: ${actionUrl}`,
+    "",
+    "The Marketo team"
+  ].join("\n");
+}
+
+function formatItemCount(itemCount: number) {
+  return `${itemCount} ${itemCount === 1 ? "item" : "items"}`;
+}
+
+function formatMoney(totalCents: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase()
+    }).format(totalCents / 100);
+  } catch {
+    return `${currency.toUpperCase()} ${(totalCents / 100).toFixed(2)}`;
+  }
 }
 
 function emailLayout(input: {

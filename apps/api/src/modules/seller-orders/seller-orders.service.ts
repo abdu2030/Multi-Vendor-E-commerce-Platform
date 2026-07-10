@@ -1,5 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { OrderStatus, Prisma, SellerStatus } from "@prisma/client";
+import { createHash } from "node:crypto";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateSellerOrderFulfillmentDto } from "./dto/update-seller-order-fulfillment.dto";
 
@@ -17,7 +19,10 @@ const sellerManagedStatuses = new Set<OrderStatus>([
 
 @Injectable()
 export class SellerOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailQueue: EmailQueueService
+  ) {}
 
   async getAll(userId: string, filters: SellerOrderFilters) {
     const store = await this.findApprovedStore(userId);
@@ -97,7 +102,7 @@ export class SellerOrdersService {
       throw new NotFoundException("Seller order item was not found.");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedItem = await this.prisma.$transaction(async (tx) => {
       await tx.orderItem.update({
         where: { id: itemId },
         data: {
@@ -141,6 +146,33 @@ export class SellerOrdersService {
 
       return formatSellerOrderItemDetail(updatedItem);
     });
+
+    const shippingDetailsChanged =
+      existingItem.sellerFulfillmentStatus !== dto.status ||
+      existingItem.trackingNumber !== trackingNumber;
+
+    if (
+      shippingDetailsChanged &&
+      (dto.status === OrderStatus.SHIPPED || dto.status === OrderStatus.DELIVERED)
+    ) {
+      const changeDigest = createHash("sha256")
+        .update(`${dto.status}|${trackingNumber ?? ""}`)
+        .digest("hex")
+        .slice(0, 16);
+
+      await this.emailQueue.enqueue(`shipping-update-${itemId}-${changeDigest}`, {
+        kind: "shipping-update",
+        to: updatedItem.buyer.email,
+        recipientName: updatedItem.buyer.fullName,
+        orderId: updatedItem.order.id,
+        orderNumber: updatedItem.order.orderNumber,
+        productTitle: updatedItem.productTitle,
+        status: dto.status,
+        trackingNumber: trackingNumber ?? undefined
+      });
+    }
+
+    return updatedItem;
   }
 
   private async findApprovedStore(userId: string) {

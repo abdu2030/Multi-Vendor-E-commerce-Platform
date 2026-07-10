@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { NotificationQueueService } from "../jobs/notification-queue.service";
-import { MailService } from "../mail/mail.service";
 import { MailTemplateKind } from "../mail/mail.types";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -20,7 +20,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationQueue: NotificationQueueService,
-    private readonly mail: MailService
+    private readonly emailQueue: EmailQueueService
   ) {}
 
   async create(input: CreateNotificationInput) {
@@ -64,13 +64,22 @@ export class NotificationsService {
       }
     });
 
-    await this.mail.sendNotificationEmail({
-      to: persisted.user.email,
-      recipientName: persisted.user.fullName,
-      title: persisted.title,
-      message: persisted.message,
-      template: input.emailTemplate
-    });
+    await this.emailQueue.enqueue(
+      `notification-email-${persisted.id}`,
+      input.emailTemplate === "welcome"
+        ? {
+            kind: "welcome",
+            to: persisted.user.email,
+            recipientName: persisted.user.fullName
+          }
+        : {
+            kind: "notification",
+            to: persisted.user.email,
+            recipientName: persisted.user.fullName,
+            title: persisted.title,
+            message: persisted.message
+          }
+    );
 
     return {
       id: persisted.id,

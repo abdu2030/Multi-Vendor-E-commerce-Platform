@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Job, Worker } from "bullmq";
-import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailQueueService } from "./email-queue.service";
 import { CREATE_NOTIFICATION_JOB, NOTIFICATIONS_QUEUE } from "./jobs.constants";
 import { CreateNotificationJob } from "./jobs.types";
 import { RedisConnectionFactory } from "./redis-connection.factory";
@@ -14,7 +14,7 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly redis: RedisConnectionFactory,
     private readonly prisma: PrismaService,
-    private readonly mail: MailService
+    private readonly emailQueue: EmailQueueService
   ) {}
 
   onModuleInit() {
@@ -70,17 +70,23 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
       }
     });
 
-    const emailed = await this.mail.sendNotificationEmail(
-      {
-        to: notification.user.email,
-        recipientName: notification.user.fullName,
-        title,
-        message,
-        template: emailTemplate
-      },
-      { throwOnError: true }
+    const emailAccepted = await this.emailQueue.enqueue(
+      `notification-email-${notification.id}`,
+      emailTemplate === "welcome"
+        ? {
+            kind: "welcome",
+            to: notification.user.email,
+            recipientName: notification.user.fullName
+          }
+        : {
+            kind: "notification",
+            to: notification.user.email,
+            recipientName: notification.user.fullName,
+            title,
+            message
+          }
     );
 
-    return { id: notification.id, emailed };
+    return { id: notification.id, emailAccepted };
   }
 }

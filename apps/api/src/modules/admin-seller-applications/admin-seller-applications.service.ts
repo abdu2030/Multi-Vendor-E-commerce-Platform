@@ -4,11 +4,15 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Role, SellerApplicationStatus, SellerStatus } from "@prisma/client";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class AdminSellerApplicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailQueue: EmailQueueService,
+  ) {}
 
   getPending() {
     return this.prisma.sellerApplication.findMany({
@@ -27,7 +31,7 @@ export class AdminSellerApplicationsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const reviewedApplication = await this.prisma.$transaction(async (tx) => {
       const existingSellerProfile = await tx.sellerProfile.findUnique({
         where: { userId: application.userId },
         select: {
@@ -152,6 +156,20 @@ export class AdminSellerApplicationsService {
         select: adminSellerApplicationSelect,
       });
     });
+
+    await this.emailQueue.enqueue(
+      `seller-decision-${application.id}-approved`,
+      {
+        kind: "seller-decision",
+        to: reviewedApplication.user.email,
+        recipientName: reviewedApplication.user.fullName,
+        applicationId: application.id,
+        storeName: reviewedApplication.storeName,
+        decision: "approved",
+      },
+    );
+
+    return reviewedApplication;
   }
 
   async reject(applicationId: string, adminUserId: string, reason: string) {
@@ -163,7 +181,7 @@ export class AdminSellerApplicationsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const reviewedApplication = await this.prisma.$transaction(async (tx) => {
       await tx.sellerApplication.update({
         where: { id: application.id },
         data: {
@@ -200,12 +218,27 @@ export class AdminSellerApplicationsService {
         select: adminSellerApplicationSelect,
       });
     });
+
+    await this.emailQueue.enqueue(
+      `seller-decision-${application.id}-rejected`,
+      {
+        kind: "seller-decision",
+        to: reviewedApplication.user.email,
+        recipientName: reviewedApplication.user.fullName,
+        applicationId: application.id,
+        storeName: reviewedApplication.storeName,
+        decision: "rejected",
+        reason: reviewedApplication.rejectionReason ?? undefined,
+      },
+    );
+
+    return reviewedApplication;
   }
 
   async suspend(applicationId: string, adminUserId: string, reason?: string) {
     const application = await this.findApplicationOrThrow(applicationId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const reviewedApplication = await this.prisma.$transaction(async (tx) => {
       const sellerProfile = await tx.sellerProfile.findUnique({
         where: { userId: application.userId },
         include: { store: true },
@@ -293,6 +326,21 @@ export class AdminSellerApplicationsService {
         select: adminSellerApplicationSelect,
       });
     });
+
+    await this.emailQueue.enqueue(
+      `seller-decision-${application.id}-suspended`,
+      {
+        kind: "seller-decision",
+        to: reviewedApplication.user.email,
+        recipientName: reviewedApplication.user.fullName,
+        applicationId: application.id,
+        storeName: reviewedApplication.storeName,
+        decision: "suspended",
+        reason: reviewedApplication.rejectionReason ?? undefined,
+      },
+    );
+
+    return reviewedApplication;
   }
 
   private async findApplicationOrThrow(applicationId: string) {

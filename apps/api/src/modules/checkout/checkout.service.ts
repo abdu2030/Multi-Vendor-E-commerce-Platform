@@ -15,6 +15,7 @@ import {
 } from "@prisma/client";
 import Stripe from "stripe";
 import { CartCacheService } from "../cart/cart-cache.service";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 const WEBHOOK_PROVIDER = "stripe";
@@ -31,6 +32,7 @@ export class CheckoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cartCache: CartCacheService,
+    private readonly emailQueue: EmailQueueService,
     config: ConfigService
   ) {
     const secretKey = config.get<string>("STRIPE_SECRET_KEY")?.trim();
@@ -336,6 +338,11 @@ export class CheckoutService {
       }
 
       if (payment.orderId) {
+        const existingOrder = await tx.order.findUniqueOrThrow({
+          where: { id: payment.orderId },
+          select: orderEmailSelect
+        });
+
         await tx.payment.update({
           where: { id: payment.id },
           data: {
@@ -347,7 +354,8 @@ export class CheckoutService {
         return {
           action: "order_already_created",
           orderId: payment.orderId,
-          sessionId: session.id
+          sessionId: session.id,
+          emailContext: buildOrderEmailContext(existingOrder, payment.currency)
         };
       }
 
@@ -432,12 +440,7 @@ export class CheckoutService {
             }))
           }
         },
-        select: {
-          id: true,
-          orderNumber: true,
-          totalCents: true,
-          items: { select: { id: true } }
-        }
+        select: orderEmailSelect
       });
 
       await tx.payment.update({
@@ -461,15 +464,53 @@ export class CheckoutService {
         orderNumber: order.orderNumber,
         itemCount: order.items.length,
         totalCents: order.totalCents,
-        sessionId: session.id
+        sessionId: session.id,
+        emailContext: buildOrderEmailContext(order, currency)
       };
     });
 
-    if (result.action === "order_created") {
-      await this.cartCache.invalidate(buyerId);
+    if (
+      (result.action === "order_created" || result.action === "order_already_created") &&
+      result.emailContext
+    ) {
+      if (result.action === "order_created") {
+        await this.cartCache.invalidate(buyerId);
+      }
+
+      await this.enqueueOrderEmails(result.emailContext);
+      const { emailContext: _emailContext, ...response } = result;
+      return response;
     }
 
     return result;
+  }
+
+  private async enqueueOrderEmails(context: OrderEmailContext) {
+    await Promise.all([
+      this.emailQueue.enqueue(`order-confirmation-${context.orderId}`, {
+        kind: "order-confirmation",
+        to: context.buyer.email,
+        recipientName: context.buyer.fullName,
+        orderId: context.orderId,
+        orderNumber: context.orderNumber,
+        itemCount: context.itemCount,
+        totalCents: context.totalCents,
+        currency: context.currency
+      }),
+      ...context.sellers.map((seller) =>
+        this.emailQueue.enqueue(`seller-new-order-${context.orderId}-${seller.storeId}`, {
+          kind: "seller-new-order",
+          to: seller.email,
+          recipientName: seller.fullName,
+          orderId: context.orderId,
+          orderNumber: context.orderNumber,
+          storeName: seller.storeName,
+          itemCount: seller.itemCount,
+          totalCents: seller.totalCents,
+          currency: context.currency
+        })
+      )
+    ]);
   }
 
   private findCheckoutCart(userId: string) {
@@ -512,6 +553,41 @@ export class CheckoutService {
     });
   }
 }
+
+const orderEmailSelect = {
+  id: true,
+  orderNumber: true,
+  totalCents: true,
+  buyer: {
+    select: {
+      fullName: true,
+      email: true
+    }
+  },
+  items: {
+    select: {
+      id: true,
+      quantity: true,
+      totalCents: true,
+      store: {
+        select: {
+          id: true,
+          name: true,
+          sellerProfile: {
+            select: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} as const;
 
 const checkoutCartSelect = {
   id: true,
@@ -570,6 +646,49 @@ const addressSnapshotSelect = {
 type CheckoutCart = NonNullable<Awaited<ReturnType<CheckoutService["findCheckoutCart"]>>>;
 type CheckoutCartItem = CheckoutCart["items"][number];
 type AddressSnapshot = Prisma.AddressGetPayload<{ select: typeof addressSnapshotSelect }>;
+type OrderEmailRecord = Prisma.OrderGetPayload<{ select: typeof orderEmailSelect }>;
+type OrderEmailContext = ReturnType<typeof buildOrderEmailContext>;
+
+function buildOrderEmailContext(order: OrderEmailRecord, currency: string) {
+  const sellers = new Map<string, {
+    storeId: string;
+    storeName: string;
+    fullName: string;
+    email: string;
+    itemCount: number;
+    totalCents: number;
+  }>();
+
+  for (const item of order.items) {
+    const store = item.store;
+    const existing = sellers.get(store.id);
+
+    if (existing) {
+      existing.itemCount += item.quantity;
+      existing.totalCents += item.totalCents;
+      continue;
+    }
+
+    sellers.set(store.id, {
+      storeId: store.id,
+      storeName: store.name,
+      fullName: store.sellerProfile.user.fullName,
+      email: store.sellerProfile.user.email,
+      itemCount: item.quantity,
+      totalCents: item.totalCents
+    });
+  }
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    totalCents: order.totalCents,
+    currency,
+    itemCount: order.items.reduce((total, item) => total + item.quantity, 0),
+    buyer: order.buyer,
+    sellers: [...sellers.values()]
+  };
+}
 
 function isPurchasableCartItem(item: CheckoutCartItem) {
   return (

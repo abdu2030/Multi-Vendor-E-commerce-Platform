@@ -1,8 +1,15 @@
 import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import nodemailer, { Transporter } from "nodemailer";
-import { renderNotificationEmail, renderWelcomeEmail } from "./email-templates";
-import { SendMailOptions, SendNotificationEmailInput } from "./mail.types";
+import {
+  renderNotificationEmail,
+  renderOrderConfirmationEmail,
+  renderSellerDecisionEmail,
+  renderSellerNewOrderEmail,
+  renderShippingUpdateEmail,
+  renderWelcomeEmail
+} from "./email-templates";
+import { QueuedEmailJob, SendMailOptions } from "./mail.types";
 
 @Injectable()
 export class MailService implements OnModuleDestroy {
@@ -46,24 +53,67 @@ export class MailService implements OnModuleDestroy {
     return Boolean(this.transporter && this.fromAddress);
   }
 
-  async sendNotificationEmail(input: SendNotificationEmailInput, options: SendMailOptions = {}) {
-    const template = input.template === "welcome"
-      ? renderWelcomeEmail({
-          recipientName: input.recipientName,
-          marketplaceUrl: this.frontendUrl
-        })
-      : renderNotificationEmail({
-          recipientName: input.recipientName,
-          title: input.title,
-          message: input.message,
-          dashboardUrl: `${this.frontendUrl}/dashboard`
-        });
+  async sendQueuedEmail(job: QueuedEmailJob, options: SendMailOptions = {}) {
+    const template = this.renderQueuedEmail(job);
 
-    return this.send(input.to, template, options);
+    return this.send(job.to, template, options);
   }
 
   async onModuleDestroy() {
     this.transporter?.close();
+  }
+
+  private renderQueuedEmail(job: QueuedEmailJob) {
+    switch (job.kind) {
+      case "welcome":
+        return renderWelcomeEmail({
+          recipientName: job.recipientName,
+          marketplaceUrl: this.frontendUrl
+        });
+      case "notification":
+        return renderNotificationEmail({
+          recipientName: job.recipientName,
+          title: job.title,
+          message: job.message,
+          dashboardUrl: `${this.frontendUrl}/dashboard`
+        });
+      case "seller-decision":
+        return renderSellerDecisionEmail({
+          recipientName: job.recipientName,
+          storeName: job.storeName,
+          decision: job.decision,
+          reason: job.reason,
+          sellerDashboardUrl: `${this.frontendUrl}/dashboard/seller/status`
+        });
+      case "order-confirmation":
+        return renderOrderConfirmationEmail({
+          recipientName: job.recipientName,
+          orderNumber: job.orderNumber,
+          itemCount: job.itemCount,
+          totalCents: job.totalCents,
+          currency: job.currency,
+          orderUrl: `${this.frontendUrl}/dashboard/orders/${job.orderId}`
+        });
+      case "seller-new-order":
+        return renderSellerNewOrderEmail({
+          recipientName: job.recipientName,
+          storeName: job.storeName,
+          orderNumber: job.orderNumber,
+          itemCount: job.itemCount,
+          totalCents: job.totalCents,
+          currency: job.currency,
+          orderUrl: `${this.frontendUrl}/dashboard/seller/orders`
+        });
+      case "shipping-update":
+        return renderShippingUpdateEmail({
+          recipientName: job.recipientName,
+          orderNumber: job.orderNumber,
+          productTitle: job.productTitle,
+          status: job.status,
+          trackingNumber: job.trackingNumber,
+          orderUrl: `${this.frontendUrl}/dashboard/orders/${job.orderId}`
+        });
+    }
   }
 
   private async send(

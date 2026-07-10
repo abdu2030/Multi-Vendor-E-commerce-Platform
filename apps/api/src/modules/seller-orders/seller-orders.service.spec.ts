@@ -1,4 +1,5 @@
 import { OrderStatus, SellerStatus } from "@prisma/client";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { SellerOrdersService } from "./seller-orders.service";
 
 describe("SellerOrdersService", () => {
@@ -21,7 +22,10 @@ describe("SellerOrdersService", () => {
         ])
       }
     };
-    const service = new SellerOrdersService(prisma as never);
+    const service = new SellerOrdersService(
+      prisma as never,
+      { enqueue: jest.fn() } as unknown as EmailQueueService
+    );
 
     const result = await service.getAll("seller_user_1", {});
 
@@ -44,6 +48,7 @@ describe("SellerOrdersService", () => {
   });
 
   it("keeps seller fulfillment updates scoped to the seller store", async () => {
+    const enqueue = jest.fn().mockResolvedValue(true);
     const tx = {
       orderItem: {
         update: jest.fn(),
@@ -79,7 +84,10 @@ describe("SellerOrdersService", () => {
       },
       $transaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx))
     };
-    const service = new SellerOrdersService(prisma as never);
+    const service = new SellerOrdersService(
+      prisma as never,
+      { enqueue } as unknown as EmailQueueService
+    );
 
     await service.updateFulfillment("seller_user_1", "order_item_1", {
       status: OrderStatus.SHIPPED,
@@ -109,6 +117,17 @@ describe("SellerOrdersService", () => {
       where: { id: "order_1" },
       data: { status: OrderStatus.SHIPPED }
     });
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.stringMatching(/^shipping-update-order_item_1-/),
+      expect.objectContaining({
+        kind: "shipping-update",
+        to: "buyer@example.com",
+        orderNumber: "ORD-TEST",
+        productTitle: "Seller Product",
+        status: OrderStatus.SHIPPED,
+        trackingNumber: "TRACK123"
+      })
+    );
   });
 });
 

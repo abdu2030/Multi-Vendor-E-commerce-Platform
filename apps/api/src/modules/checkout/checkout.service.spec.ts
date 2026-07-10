@@ -1,10 +1,15 @@
 import { ConfigService } from "@nestjs/config";
 import { CartStatus, OrderStatus, PaymentStatus, ProductStatus, SellerStatus } from "@prisma/client";
 import { CartCacheService } from "../cart/cart-cache.service";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { CheckoutService } from "./checkout.service";
 
 describe("CheckoutService webhook order handling", () => {
-  function createService(prisma: Record<string, unknown>, cartCache: Partial<CartCacheService> = {}) {
+  function createService(
+    prisma: Record<string, unknown>,
+    cartCache: Partial<CartCacheService> = {},
+    emailQueue: Partial<EmailQueueService> = {}
+  ) {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string> = {
@@ -20,6 +25,7 @@ describe("CheckoutService webhook order handling", () => {
     return new CheckoutService(
       prisma as never,
       { invalidate: jest.fn(), ...cartCache } as unknown as CartCacheService,
+      { enqueue: jest.fn(), ...emailQueue } as unknown as EmailQueueService,
       config
     );
   }
@@ -55,6 +61,7 @@ describe("CheckoutService webhook order handling", () => {
 
   it("creates an order once, reduces stock, writes inventory logs, and clears the cart", async () => {
     const invalidate = jest.fn();
+    const enqueue = jest.fn().mockResolvedValue(true);
     const cart = buildCheckoutCart();
     const address = {
       id: "address_1",
@@ -96,7 +103,25 @@ describe("CheckoutService webhook order handling", () => {
           id: "order_1",
           orderNumber: "ORD-TEST",
           totalCents: 4000,
-          items: [{ id: "order_item_1" }]
+          buyer: {
+            fullName: "Buyer One",
+            email: "buyer@example.com"
+          },
+          items: [{
+            id: "order_item_1",
+            quantity: 2,
+            totalCents: 4000,
+            store: {
+              id: "store_1",
+              name: "Seller Store",
+              sellerProfile: {
+                user: {
+                  fullName: "Seller One",
+                  email: "seller@example.com"
+                }
+              }
+            }
+          }]
         })
       },
       cartItem: {
@@ -106,7 +131,7 @@ describe("CheckoutService webhook order handling", () => {
     const prisma = {
       $transaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx))
     };
-    const service = createService(prisma, { invalidate });
+    const service = createService(prisma, { invalidate }, { enqueue });
     const session = {
       id: "cs_test_1",
       client_reference_id: "cart_1",
@@ -175,6 +200,26 @@ describe("CheckoutService webhook order handling", () => {
       data: { status: CartStatus.ACTIVE }
     });
     expect(invalidate).toHaveBeenCalledWith("buyer_1");
+    expect(enqueue).toHaveBeenCalledWith(
+      "order-confirmation-order_1",
+      expect.objectContaining({
+        kind: "order-confirmation",
+        to: "buyer@example.com",
+        orderNumber: "ORD-TEST",
+        itemCount: 2,
+        totalCents: 4000
+      })
+    );
+    expect(enqueue).toHaveBeenCalledWith(
+      "seller-new-order-order_1-store_1",
+      expect.objectContaining({
+        kind: "seller-new-order",
+        to: "seller@example.com",
+        storeName: "Seller Store",
+        itemCount: 2,
+        totalCents: 4000
+      })
+    );
   });
 });
 

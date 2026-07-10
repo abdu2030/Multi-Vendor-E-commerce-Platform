@@ -1,4 +1,11 @@
-import { renderNotificationEmail, renderWelcomeEmail } from "./email-templates";
+import {
+  renderNotificationEmail,
+  renderOrderConfirmationEmail,
+  renderSellerDecisionEmail,
+  renderSellerNewOrderEmail,
+  renderShippingUpdateEmail,
+  renderWelcomeEmail
+} from "./email-templates";
 
 describe("email templates", () => {
   it("renders a multipart welcome email with a marketplace link", () => {
@@ -28,5 +35,45 @@ describe("email templates", () => {
     expect(email.html).toContain("&lt;script&gt;");
     expect(email.html).toContain("Review &lt;approved&gt;");
     expect(email.html).toContain("Great &amp; ready");
+  });
+
+  it("renders each queued marketplace lifecycle template", () => {
+    const sellerDecision = renderSellerDecisionEmail({
+      recipientName: "Seller One",
+      storeName: "Seller Store",
+      decision: "rejected",
+      reason: "Document needs renewal",
+      sellerDashboardUrl: "https://marketo.example/dashboard/seller/status"
+    });
+    const orderConfirmation = renderOrderConfirmationEmail({
+      recipientName: "Buyer One",
+      orderNumber: "ORD-TEST",
+      itemCount: 2,
+      totalCents: 4000,
+      currency: "USD",
+      orderUrl: "https://marketo.example/dashboard/orders/order_1"
+    });
+    const sellerNewOrder = renderSellerNewOrderEmail({
+      recipientName: "Seller One",
+      storeName: "Seller Store",
+      orderNumber: "ORD-TEST",
+      itemCount: 2,
+      totalCents: 4000,
+      currency: "USD",
+      orderUrl: "https://marketo.example/dashboard/seller/orders"
+    });
+    const shippingUpdate = renderShippingUpdateEmail({
+      recipientName: "Buyer One",
+      orderNumber: "ORD-TEST",
+      productTitle: "Seller Product",
+      status: "SHIPPED",
+      trackingNumber: "TRACK123",
+      orderUrl: "https://marketo.example/dashboard/orders/order_1"
+    });
+
+    expect(sellerDecision.text).toContain("Document needs renewal");
+    expect(orderConfirmation.text).toContain("$40.00");
+    expect(sellerNewOrder.subject).toContain("Seller Store");
+    expect(shippingUpdate.text).toContain("TRACK123");
   });
 });
