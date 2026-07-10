@@ -9,9 +9,11 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { CartModule } from "./modules/cart/cart.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { CheckoutModule } from "./modules/checkout/checkout.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OrdersModule } from "./modules/orders/orders.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ProductsModule } from "./modules/products/products.module";
+import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { SellerApplicationsModule } from "./modules/seller-applications/seller-applications.module";
 import { SellerDashboardModule } from "./modules/seller-dashboard/seller-dashboard.module";
 import { SellerOrdersModule } from "./modules/seller-orders/seller-orders.module";
@@ -29,11 +31,13 @@ import { UsersModule } from "./modules/users/users.module";
     AuthModule,
     CartModule,
     CheckoutModule,
+    NotificationsModule,
     OrdersModule,
     CategoriesModule,
     AdminCategoriesModule,
     AdminSellerApplicationsModule,
     AdminProductsModule,
+    ReviewsModule,
     SellerApplicationsModule,
     SellerDashboardModule,
     SellerOrdersModule,
