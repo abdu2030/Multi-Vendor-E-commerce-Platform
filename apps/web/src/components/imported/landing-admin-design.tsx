@@ -334,15 +334,6 @@ const TRUST = [
   },
 ];
 
-const HERO_MOSAIC = [
-  { id: "photo-1548036328-c9fa89d128fa", alt: "Canvas tote bag" },
-  { id: "photo-1523275335684-37898b6baf30", alt: "Minimalist watch" },
-  { id: "photo-1514228742587-6b1558fcca3d", alt: "Ceramic mug" },
-  { id: "photo-1485955900006-10f4d324d411", alt: "Plant pot" },
-  { id: "photo-1544947950-fa07a98d237f", alt: "Notebook" },
-  { id: "photo-1602874801006-8e3d6e2e6890", alt: "Candle" },
-];
-
 // ─── Admin Data ───────────────────────────────────────────────────────────────
 
 const ADMIN_STATS = [
@@ -2028,42 +2019,28 @@ export function ImportedLandingPage() {
               Payments secured by Stripe · All sellers verified before listing
             </p>
           </div>
-          <div className="hidden lg:grid grid-cols-3 grid-rows-2 gap-3 h-[460px]">
-            {HERO_MOSAIC.map((img, i) => (
-              <div
-                key={img.id}
-                className={`relative rounded-2xl overflow-hidden bg-stone-100 ${i === 0 ? "row-span-2" : ""}`}
-              >
-                <img
-                  src={`https://images.unsplash.com/${img.id}?w=320&h=480&fit=crop&auto=format`}
-                  alt={img.alt}
-                  className="w-full h-full object-cover"
-                />
-                {i === 0 && (
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="bg-white/96 backdrop-blur rounded-xl p-3.5 shadow-sm">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="text-[10px] font-bold text-stone-600 uppercase tracking-wide">
-                          Verified seller
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-stone-900 leading-snug">
-                        Handmade Leather Wallet
-                      </p>
-                      <div className="flex items-center justify-between mt-1.5">
-                        <span className="text-base font-extrabold text-emerald-700">
-                          $24.99
-                        </span>
-                        <span className="text-[10px] text-amber-600 font-semibold">
-                          Only 4 left
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+          <div className="relative hidden h-[460px] overflow-hidden rounded-2xl bg-stone-100 shadow-sm lg:block">
+            <img
+              src="/images/marketplace-hero.webp"
+              alt="Independent seller preparing a customer order in her studio"
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-950/70 via-stone-950/20 to-transparent p-5 pt-24">
+              <div className="max-w-[250px] rounded-xl bg-white/95 p-3.5 shadow-sm backdrop-blur">
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-stone-600">
+                    Verified seller
+                  </span>
+                </div>
+                <p className="text-sm font-bold leading-snug text-stone-900">
+                  Made by independent businesses
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-stone-500">
+                  Curated products, packed with care.
+                </p>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>

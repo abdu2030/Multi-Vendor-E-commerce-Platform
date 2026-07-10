@@ -62,10 +62,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF8F4] px-4 py-8 text-stone-900">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xl lg:grid-cols-[1fr_500px]">
-        <section className="hidden flex-col justify-between bg-stone-900 p-10 text-white lg:flex">
-          <div>
+    <main className="min-h-screen overflow-x-hidden bg-[#FAF8F4] px-4 py-8 text-stone-900">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full min-w-0 grid-cols-[minmax(0,1fr)] max-w-6xl overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-xl lg:grid-cols-[1fr_500px]">
+        <section className="relative isolate hidden flex-col justify-between overflow-hidden bg-stone-900 p-10 text-white lg:flex">
+          <img
+            alt="Independent seller managing orders in her studio"
+            className="absolute inset-0 -z-20 h-full w-full object-cover"
+            src="/images/seller-studio.webp"
+          />
+          <div className="absolute inset-0 -z-10 bg-stone-950/75" />
+          <div className="relative z-10">
             <Link className="flex items-center gap-2" href="/">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600">
                 <Package className="h-4 w-4" />
@@ -74,7 +80,7 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          <div className="max-w-lg">
+          <div className="relative z-10 max-w-lg">
             <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-emerald-400">
               Buyer account
             </p>
@@ -87,7 +93,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <div className="grid gap-3">
+          <div className="relative z-10 grid gap-3">
             {[
               ["Buyer dashboard", "Profile and protected account access"],
               ["Seller application", "Submit store details after registration"],
@@ -107,8 +113,8 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        <section className="flex items-center p-6 sm:p-10">
-          <div className="w-full">
+        <section className="flex min-w-0 items-center p-6 sm:p-10">
+          <div className="w-full min-w-0">
             <div className="mb-8 lg:hidden">
               <Link className="flex items-center gap-2" href="/">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
@@ -131,14 +137,17 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <form className="grid gap-4" onSubmit={handleSubmit}>
-              <label className="grid gap-2">
+            <form
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
+              onSubmit={handleSubmit}
+            >
+              <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-bold text-stone-700">
                   Full name
                 </span>
                 <input
                   autoComplete="name"
-                  className="h-12 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
+                  className="h-12 w-full min-w-0 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                   name="fullName"
                   onChange={(event) => setFullName(event.target.value)}
                   placeholder="Your full name"
@@ -147,11 +156,11 @@ export default function RegisterPage() {
                 />
               </label>
 
-              <label className="grid gap-2">
+              <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-bold text-stone-700">Email</span>
                 <input
                   autoComplete="email"
-                  className="h-12 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
+                  className="h-12 w-full min-w-0 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                   name="email"
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
@@ -160,14 +169,14 @@ export default function RegisterPage() {
                 />
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-2">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
+                <label className="grid min-w-0 gap-2">
                   <span className="text-sm font-bold text-stone-700">
                     Phone
                   </span>
                   <input
                     autoComplete="tel"
-                    className="h-12 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
+                    className="h-12 w-full min-w-0 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                     name="phone"
                     onChange={(event) => setPhone(event.target.value)}
                     placeholder="Optional"
@@ -176,13 +185,13 @@ export default function RegisterPage() {
                   />
                 </label>
 
-                <label className="grid gap-2">
+                <label className="grid min-w-0 gap-2">
                   <span className="text-sm font-bold text-stone-700">
                     Password
                   </span>
                   <input
                     autoComplete="new-password"
-                    className="h-12 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
+                    className="h-12 w-full min-w-0 rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm text-stone-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                     name="password"
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="8+ characters"

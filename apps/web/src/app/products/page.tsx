@@ -69,18 +69,22 @@ export default async function ProductsPage({
               category, and sold by an approved store.
             </p>
           </div>
-          <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+          <div className="relative min-h-48 overflow-hidden rounded-3xl border border-stone-200 bg-stone-100">
+            <img
+              alt="Colorful collection of marketplace products"
+              className="absolute inset-0 h-full w-full object-cover"
+              src="/images/catalog-collection.webp"
+            />
+            <div className="absolute inset-x-4 bottom-4 flex items-center gap-3 rounded-2xl bg-white/95 p-4 shadow-sm backdrop-blur">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
                 <Shield className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-extrabold text-stone-900">
                   Approved listings only
                 </p>
-                <p className="text-xs font-semibold leading-relaxed text-emerald-800">
-                  Draft, pending, rejected, archived, inactive-category, and
-                  suspended-store products stay hidden.
+                <p className="text-xs font-semibold leading-relaxed text-stone-500">
+                  Every public product has passed marketplace review.
                 </p>
               </div>
             </div>
