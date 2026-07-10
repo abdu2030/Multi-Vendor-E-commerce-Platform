@@ -112,7 +112,8 @@ export class ReviewsService {
       userId: product.store.sellerProfile.userId,
       type: NotificationType.ORDER,
       title: "New product review",
-      message: `${product.title} received a ${dto.rating}-star review.`
+      message: `${product.title} received a ${dto.rating}-star review.`,
+      idempotencyKey: `review-created-${review.id}`
     });
 
     return formatReview(review);
