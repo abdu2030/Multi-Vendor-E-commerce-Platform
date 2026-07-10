@@ -1,4 +1,5 @@
 import { NotificationType } from "@prisma/client";
+import { MailTemplateKind } from "../mail/mail.types";
 
 export type CreateNotificationJob = {
   notificationId: string;
@@ -6,4 +7,5 @@ export type CreateNotificationJob = {
   type: NotificationType;
   title: string;
   message: string;
+  emailTemplate?: MailTemplateKind;
 };

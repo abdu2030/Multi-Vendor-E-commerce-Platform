@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Job, Worker } from "bullmq";
+import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CREATE_NOTIFICATION_JOB, NOTIFICATIONS_QUEUE } from "./jobs.constants";
 import { CreateNotificationJob } from "./jobs.types";
@@ -12,7 +13,8 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly redis: RedisConnectionFactory,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService
   ) {}
 
   onModuleInit() {
@@ -45,9 +47,9 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
       throw new Error(`Unsupported notification job: ${job.name}`);
     }
 
-    const { notificationId, userId, type, title, message } = job.data;
+    const { notificationId, userId, type, title, message, emailTemplate } = job.data;
 
-    return this.prisma.notification.upsert({
+    const notification = await this.prisma.notification.upsert({
       where: { id: notificationId },
       update: {},
       create: {
@@ -57,7 +59,28 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
         title,
         message
       },
-      select: { id: true }
+      select: {
+        id: true,
+        user: {
+          select: {
+            email: true,
+            fullName: true
+          }
+        }
+      }
     });
+
+    const emailed = await this.mail.sendNotificationEmail(
+      {
+        to: notification.user.email,
+        recipientName: notification.user.fullName,
+        title,
+        message,
+        template: emailTemplate
+      },
+      { throwOnError: true }
+    );
+
+    return { id: notification.id, emailed };
   }
 }

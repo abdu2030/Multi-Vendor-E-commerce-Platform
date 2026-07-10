@@ -13,6 +13,8 @@ export function validateEnv(config: EnvConfig) {
   const accessTokenTtlSeconds = Number(config.JWT_ACCESS_TOKEN_TTL_SECONDS ?? 900);
   const refreshTokenTtlDays = Number(config.JWT_REFRESH_TOKEN_TTL_DAYS ?? 30);
   const queueWorkerConcurrency = Number(config.QUEUE_WORKER_CONCURRENCY ?? 5);
+  const gmailSmtpPort = Number(config.GMAIL_SMTP_PORT ?? 465);
+  const gmailSmtpSecure = parseBoolean(config.GMAIL_SMTP_SECURE, true, "GMAIL_SMTP_SECURE");
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("PORT must be a valid TCP port.");
@@ -34,11 +36,46 @@ export function validateEnv(config: EnvConfig) {
     throw new Error("REDIS_URL must use the redis:// or rediss:// protocol.");
   }
 
+  const gmailUser = config.GMAIL_USER?.trim();
+  const gmailAppPassword = config.GMAIL_APP_PASSWORD?.trim();
+
+  if (Boolean(gmailUser) !== Boolean(gmailAppPassword)) {
+    throw new Error("GMAIL_USER and GMAIL_APP_PASSWORD must be configured together.");
+  }
+
+  if (gmailUser && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gmailUser)) {
+    throw new Error("GMAIL_USER must be a valid email address.");
+  }
+
+  if (!Number.isInteger(gmailSmtpPort) || gmailSmtpPort < 1 || gmailSmtpPort > 65535) {
+    throw new Error("GMAIL_SMTP_PORT must be a valid TCP port.");
+  }
+
   return {
     ...config,
     PORT: port,
     JWT_ACCESS_TOKEN_TTL_SECONDS: accessTokenTtlSeconds,
     JWT_REFRESH_TOKEN_TTL_DAYS: refreshTokenTtlDays,
-    QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency
+    QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
+    GMAIL_SMTP_PORT: gmailSmtpPort,
+    GMAIL_SMTP_SECURE: gmailSmtpSecure
   };
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean, key: string) {
+  if (value === undefined || value.trim() === "") {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (["1", "true", "yes"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no"].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(`${key} must be true or false.`);
 }

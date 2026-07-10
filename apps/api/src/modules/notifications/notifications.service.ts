@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import { NotificationQueueService } from "../jobs/notification-queue.service";
+import { MailService } from "../mail/mail.service";
+import { MailTemplateKind } from "../mail/mail.types";
 import { PrismaService } from "../prisma/prisma.service";
 
 type CreateNotificationInput = {
@@ -10,13 +12,15 @@ type CreateNotificationInput = {
   title: string;
   message: string;
   idempotencyKey?: string;
+  emailTemplate?: MailTemplateKind;
 };
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationQueue: NotificationQueueService
+    private readonly notificationQueue: NotificationQueueService,
+    private readonly mail: MailService
   ) {}
 
   async create(input: CreateNotificationInput) {
@@ -25,14 +29,15 @@ export class NotificationsService {
       userId: input.userId,
       type: input.type ?? NotificationType.INFO,
       title: input.title.trim(),
-      message: input.message.trim()
+      message: input.message.trim(),
+      emailTemplate: input.emailTemplate
     };
 
     if (await this.notificationQueue.enqueue(notification)) {
       return { id: notification.notificationId, queued: true };
     }
 
-    return this.prisma.notification.upsert({
+    const persisted = await this.prisma.notification.upsert({
       where: { id: notification.notificationId },
       update: {},
       create: {
@@ -49,9 +54,33 @@ export class NotificationsService {
         title: true,
         message: true,
         readAt: true,
-        createdAt: true
+        createdAt: true,
+        user: {
+          select: {
+            email: true,
+            fullName: true
+          }
+        }
       }
     });
+
+    await this.mail.sendNotificationEmail({
+      to: persisted.user.email,
+      recipientName: persisted.user.fullName,
+      title: persisted.title,
+      message: persisted.message,
+      template: input.emailTemplate
+    });
+
+    return {
+      id: persisted.id,
+      userId: persisted.userId,
+      type: persisted.type,
+      title: persisted.title,
+      message: persisted.message,
+      readAt: persisted.readAt,
+      createdAt: persisted.createdAt
+    };
   }
 }
 

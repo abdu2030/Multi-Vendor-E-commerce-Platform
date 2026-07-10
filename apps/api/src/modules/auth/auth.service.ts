@@ -6,6 +6,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { Role, User } from "@prisma/client";
 import { createHash, randomBytes } from "crypto";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
@@ -27,7 +28,8 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly jwtTokenService: JwtTokenService,
     private readonly passwordService: PasswordService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -47,7 +49,17 @@ export class AuthService {
       }
     });
 
-    return this.createSession(user);
+    const session = await this.createSession(user);
+
+    await this.notifications.create({
+      userId: user.id,
+      title: "Welcome to Marketo",
+      message: "Your marketplace account is ready. Discover products or start building your storefront.",
+      idempotencyKey: `user-welcome-${user.id}`,
+      emailTemplate: "welcome"
+    });
+
+    return session;
   }
 
   async login(dto: LoginDto) {

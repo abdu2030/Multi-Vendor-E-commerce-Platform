@@ -71,6 +71,22 @@ CLOUDINARY_UPLOAD_FOLDER=multi-vendor-ecommerce
 ```
 
 The upload endpoints accept a `file` string containing a data URI, base64 payload, or remote image URL.
+
+## Gmail SMTP
+
+Transactional email uses Nodemailer with Gmail SMTP. Enable 2-Step Verification on the sender account, create a Gmail app password, and add these values to `apps/api/.env`:
+
+```text
+GMAIL_USER=sender@gmail.com
+GMAIL_APP_PASSWORD=your_16_character_app_password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=465
+GMAIL_SMTP_SECURE=true
+GMAIL_FROM_NAME=Marketo
+```
+
+Do not use the Gmail account password and do not commit the app password. When the Gmail variables are omitted, the API keeps notifications working and skips email delivery.
+
 ## Database
 
 Generate Prisma Client:
