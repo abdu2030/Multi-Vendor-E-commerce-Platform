@@ -222,6 +222,34 @@ Expected response shape:
 
 Do not paste real secret values into `render.yaml`. The Blueprint uses `sync: false` for secrets so Render prompts for them during setup.
 
+## Vercel Frontend Deployment
+
+The frontend is a Next.js app in `apps/web`. Deploy it to Vercel with the project root set to `apps/web`.
+
+Vercel settings:
+
+- Framework preset: Next.js
+- Root directory: `apps/web`
+- Install command: `npm install --include=dev`
+- Build command: `npm run build`
+- Output directory: leave default
+
+Environment variables:
+
+```text
+NEXT_PUBLIC_API_URL=https://multi-vendor-ecommerce-api.onrender.com/api
+NEXT_PUBLIC_APP_NAME=MultiVendor Marketplace
+```
+
+After Vercel deploys, update the Render API environment variables so browser requests from the frontend are allowed:
+
+```text
+FRONTEND_URL=https://YOUR_VERCEL_APP.vercel.app
+CORS_ORIGIN=https://YOUR_VERCEL_APP.vercel.app
+```
+
+Then redeploy the Render API and verify the frontend can log in, load products, and call dashboard APIs.
+
 ## Local Development
 
 Run the API:
