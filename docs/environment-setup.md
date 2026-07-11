@@ -181,11 +181,10 @@ The repository includes a Render Blueprint at `render.yaml` for the backend API.
 Blueprint behavior:
 
 - Build command: `npm ci && npm run build -w apps/api`
-- Pre-deploy command: `npm run prisma:deploy:production -w apps/api`
 - Start command: `npm run start -w apps/api`
 - Health check path: `/api/health`
 - Auto deploy trigger: commits to `main`
-- Instance plan: Render free plan for initial verification. Free services can sleep when inactive, so upgrade before relying on background jobs or production traffic.
+- Instance plan: Render free plan for initial verification. Free services can sleep when inactive, and Render does not support pre-deploy commands on the free tier.
 
 Deploy steps:
 
@@ -193,8 +192,14 @@ Deploy steps:
 2. Select `render.yaml` from the repository root.
 3. Fill every `sync: false` environment variable from the production values in `apps/api/.env` or your password manager.
 4. Set `FRONTEND_URL` and `CORS_ORIGIN` to HTTPS production URLs. Include the Render API URL in any frontend API config after deploy.
-5. Confirm the first deploy finishes the build, runs Prisma migrations, and starts the API.
-6. Verify health:
+5. Before the first deploy, run production migrations from your machine or CI:
+
+```bash
+npm run prisma:deploy:production -w apps/api
+```
+
+6. Confirm the first deploy finishes the build and starts the API.
+7. Verify health:
 
 ```bash
 curl https://YOUR_RENDER_SERVICE.onrender.com/api/health

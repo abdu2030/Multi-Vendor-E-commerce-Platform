@@ -6,7 +6,6 @@ services:
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build -w apps/api
-    preDeployCommand: npm run prisma:deploy:production -w apps/api
     startCommand: npm run start -w apps/api
     healthCheckPath: /api/health
     autoDeployTrigger: commit
