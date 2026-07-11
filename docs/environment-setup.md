@@ -138,6 +138,42 @@ Seed the admin user:
 npm run seed:admin -w apps/api
 ```
 
+## Production PostgreSQL Deployment
+
+Use a managed PostgreSQL provider such as Neon, Supabase, Railway, Render, or another production PostgreSQL host. Create a dedicated production database and user, then put the production connection string in the deployment platform as `DATABASE_URL`. If you use a file locally for a one-time deployment, copy the production template and keep the real file ignored by Git:
+
+```bash
+copy apps\api\.env.production.example apps\api\.env.production
+```
+
+Production requirements:
+
+- `NODE_ENV=production`
+- `DATABASE_URL` points at the production PostgreSQL database, not local or staging.
+- `DATABASE_URL` includes `sslmode=require`.
+- The database user has permission to create tables, indexes, constraints, and Prisma migration records.
+- Do not commit `apps/api/.env.production`.
+
+Check production migration status without applying changes:
+
+```bash
+npm run prisma:status:production -w apps/api
+```
+
+Deploy checked-in migrations to production:
+
+```bash
+npm run prisma:deploy:production -w apps/api
+```
+
+To seed the production admin user and starter categories immediately after migration, include `-- --seed-admin` and make sure `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` are set with production values:
+
+```bash
+npm run prisma:deploy:production -w apps/api -- --seed-admin
+```
+
+The production migration runner masks database credentials in logs and refuses placeholder database URLs.
+
 ## Local Development
 
 Run the API:
