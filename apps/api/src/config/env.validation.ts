@@ -15,6 +15,8 @@ export function validateEnv(config: EnvConfig) {
   const queueWorkerConcurrency = Number(config.QUEUE_WORKER_CONCURRENCY ?? 5);
   const gmailSmtpPort = Number(config.GMAIL_SMTP_PORT ?? 465);
   const gmailSmtpSecure = parseBoolean(config.GMAIL_SMTP_SECURE, true, "GMAIL_SMTP_SECURE");
+  const rateLimitWindowMs = Number(config.RATE_LIMIT_WINDOW_MS ?? 60_000);
+  const rateLimitMax = Number(config.RATE_LIMIT_MAX ?? 120);
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("PORT must be a valid TCP port.");
@@ -30,6 +32,14 @@ export function validateEnv(config: EnvConfig) {
 
   if (!Number.isInteger(queueWorkerConcurrency) || queueWorkerConcurrency < 1 || queueWorkerConcurrency > 50) {
     throw new Error("QUEUE_WORKER_CONCURRENCY must be an integer between 1 and 50.");
+  }
+
+  if (!Number.isInteger(rateLimitWindowMs) || rateLimitWindowMs < 1_000) {
+    throw new Error("RATE_LIMIT_WINDOW_MS must be at least 1000 milliseconds.");
+  }
+
+  if (!Number.isInteger(rateLimitMax) || rateLimitMax < 1) {
+    throw new Error("RATE_LIMIT_MAX must be at least 1.");
   }
 
   if (config.REDIS_URL && !/^rediss?:\/\//i.test(config.REDIS_URL)) {
@@ -58,7 +68,9 @@ export function validateEnv(config: EnvConfig) {
     JWT_REFRESH_TOKEN_TTL_DAYS: refreshTokenTtlDays,
     QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
     GMAIL_SMTP_PORT: gmailSmtpPort,
-    GMAIL_SMTP_SECURE: gmailSmtpSecure
+    GMAIL_SMTP_SECURE: gmailSmtpSecure,
+    RATE_LIMIT_WINDOW_MS: rateLimitWindowMs,
+    RATE_LIMIT_MAX: rateLimitMax
   };
 }
 

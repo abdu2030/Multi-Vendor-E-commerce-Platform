@@ -27,6 +27,7 @@
     "bullmq": "^5.80.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "helmet": "^8.2.0",
     "ioredis": "^5.11.1",
     "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
