@@ -1,8 +1,27 @@
 type EnvConfig = Record<string, string | undefined>;
 
+type AppEnvironment = "development" | "test" | "staging" | "production";
+
+const appEnvironments = ["development", "test", "staging", "production"] as const;
+const productionLikeEnvironments = new Set<AppEnvironment>(["staging", "production"]);
 const requiredVariables = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"] as const;
+const placeholderValues = new Set([
+  "change_this_password",
+  "sk_live_xxx",
+  "replace_with_strong_secret",
+  "sk_test_xxx",
+  "whsec_xxx",
+  "your_16_character_app_password",
+  "your_app_password",
+  "your_api_key",
+  "your_api_secret",
+  "your_cloud_name",
+  "your_email@gmail.com"
+]);
+const placeholderFragments = ["example.com", "user:password@host", "default:password@host"];
 
 export function validateEnv(config: EnvConfig) {
+  const nodeEnv = parseNodeEnv(config.NODE_ENV);
   const missing = requiredVariables.filter((key) => !config[key]);
 
   if (missing.length > 0) {
@@ -42,10 +61,62 @@ export function validateEnv(config: EnvConfig) {
     throw new Error("RATE_LIMIT_MAX must be at least 1.");
   }
 
+  validateUrls(config);
+  validateRedis(config, nodeEnv);
+  validateGmail(config, gmailSmtpPort);
+  validateProductionLikeConfig(config, nodeEnv);
+
+  return {
+    ...config,
+    NODE_ENV: nodeEnv,
+    PORT: port,
+    JWT_ACCESS_TOKEN_TTL_SECONDS: accessTokenTtlSeconds,
+    JWT_REFRESH_TOKEN_TTL_DAYS: refreshTokenTtlDays,
+    QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
+    GMAIL_SMTP_PORT: gmailSmtpPort,
+    GMAIL_SMTP_SECURE: gmailSmtpSecure,
+    RATE_LIMIT_WINDOW_MS: rateLimitWindowMs,
+    RATE_LIMIT_MAX: rateLimitMax
+  };
+}
+
+function parseNodeEnv(value: string | undefined): AppEnvironment {
+  const normalized = (value?.trim() || "development") as AppEnvironment;
+
+  if (!appEnvironments.includes(normalized)) {
+    throw new Error(`NODE_ENV must be one of: ${appEnvironments.join(", ")}.`);
+  }
+
+  return normalized;
+}
+
+function validateUrls(config: EnvConfig) {
+  if (config.FRONTEND_URL) {
+    parseUrl(config.FRONTEND_URL, "FRONTEND_URL");
+  }
+
+  const corsOrigins = splitCsv(config.CORS_ORIGIN);
+
+  for (const origin of corsOrigins) {
+    if (origin === "*") {
+      continue;
+    }
+
+    parseUrl(origin, "CORS_ORIGIN");
+  }
+}
+
+function validateRedis(config: EnvConfig, nodeEnv: AppEnvironment) {
   if (config.REDIS_URL && !/^rediss?:\/\//i.test(config.REDIS_URL)) {
     throw new Error("REDIS_URL must use the redis:// or rediss:// protocol.");
   }
 
+  if (productionLikeEnvironments.has(nodeEnv) && config.REDIS_URL && !config.REDIS_URL.startsWith("rediss://")) {
+    throw new Error("REDIS_URL must use rediss:// in staging and production.");
+  }
+}
+
+function validateGmail(config: EnvConfig, gmailSmtpPort: number) {
   const gmailUser = config.GMAIL_USER?.trim();
   const gmailAppPassword = config.GMAIL_APP_PASSWORD?.trim();
 
@@ -60,18 +131,119 @@ export function validateEnv(config: EnvConfig) {
   if (!Number.isInteger(gmailSmtpPort) || gmailSmtpPort < 1 || gmailSmtpPort > 65535) {
     throw new Error("GMAIL_SMTP_PORT must be a valid TCP port.");
   }
+}
 
-  return {
-    ...config,
-    PORT: port,
-    JWT_ACCESS_TOKEN_TTL_SECONDS: accessTokenTtlSeconds,
-    JWT_REFRESH_TOKEN_TTL_DAYS: refreshTokenTtlDays,
-    QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
-    GMAIL_SMTP_PORT: gmailSmtpPort,
-    GMAIL_SMTP_SECURE: gmailSmtpSecure,
-    RATE_LIMIT_WINDOW_MS: rateLimitWindowMs,
-    RATE_LIMIT_MAX: rateLimitMax
-  };
+function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment) {
+  if (!productionLikeEnvironments.has(nodeEnv)) {
+    return;
+  }
+
+  requireHttps(config.FRONTEND_URL, "FRONTEND_URL");
+  requirePresent(config.CORS_ORIGIN, "CORS_ORIGIN");
+  requirePresent(config.REDIS_URL, "REDIS_URL");
+
+  for (const origin of splitCsv(config.CORS_ORIGIN)) {
+    if (origin === "*") {
+      throw new Error("CORS_ORIGIN cannot include * in staging or production.");
+    }
+
+    requireHttps(origin, "CORS_ORIGIN");
+  }
+
+  requireStrongSecret(config.JWT_ACCESS_SECRET, "JWT_ACCESS_SECRET");
+  requireStrongSecret(config.JWT_REFRESH_SECRET, "JWT_REFRESH_SECRET");
+
+  if (config.JWT_ACCESS_SECRET === config.JWT_REFRESH_SECRET) {
+    throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different.");
+  }
+
+  if (!config.DATABASE_URL?.includes("sslmode=require")) {
+    throw new Error("DATABASE_URL must include sslmode=require in staging and production.");
+  }
+
+  if (nodeEnv === "production") {
+    requirePresent(config.STRIPE_SECRET_KEY, "STRIPE_SECRET_KEY");
+    requirePresent(config.STRIPE_WEBHOOK_SECRET, "STRIPE_WEBHOOK_SECRET");
+    requirePresent(config.GMAIL_USER, "GMAIL_USER");
+    requirePresent(config.GMAIL_APP_PASSWORD, "GMAIL_APP_PASSWORD");
+
+    if (!config.STRIPE_SECRET_KEY?.startsWith("sk_live_")) {
+      throw new Error("STRIPE_SECRET_KEY must use a live Stripe key in production.");
+    }
+  }
+
+  requireNonPlaceholder(config.ADMIN_PASSWORD, "ADMIN_PASSWORD");
+
+  if (config.ADMIN_PASSWORD && config.ADMIN_PASSWORD.length < 12) {
+    throw new Error("ADMIN_PASSWORD must be at least 12 characters in staging and production.");
+  }
+
+  if (config.ADMIN_EMAIL && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.ADMIN_EMAIL)) {
+    throw new Error("ADMIN_EMAIL must be a valid email address.");
+  }
+
+  for (const key of Object.keys(config)) {
+    requireNonPlaceholder(config[key], key);
+  }
+}
+
+function requireStrongSecret(value: string | undefined, key: string) {
+  requirePresent(value, key);
+  requireNonPlaceholder(value, key);
+
+  if (value && value.length < 32) {
+    throw new Error(`${key} must be at least 32 characters in staging and production.`);
+  }
+}
+
+function requirePresent(value: string | undefined, key: string) {
+  if (!value?.trim()) {
+    throw new Error(`${key} is required in production.`);
+  }
+}
+
+function requireNonPlaceholder(value: string | undefined, key: string) {
+  if (!value) {
+    return;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (
+    placeholderValues.has(normalized) ||
+    normalized.startsWith("replace_with_") ||
+    normalized.startsWith("your_") ||
+    placeholderFragments.some((fragment) => normalized.includes(fragment))
+  ) {
+    throw new Error(`${key} must not use a placeholder value in staging or production.`);
+  }
+}
+
+function requireHttps(value: string | undefined, key: string) {
+  const url = parseUrl(value, key);
+
+  if (url.protocol !== "https:") {
+    throw new Error(`${key} must use https:// in staging and production.`);
+  }
+}
+
+function parseUrl(value: string | undefined, key: string) {
+  if (!value?.trim()) {
+    throw new Error(`${key} must be a valid URL.`);
+  }
+
+  try {
+    return new URL(value.trim());
+  } catch {
+    throw new Error(`${key} must be a valid URL.`);
+  }
+}
+
+function splitCsv(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean, key: string) {

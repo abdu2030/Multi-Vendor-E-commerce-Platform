@@ -1,6 +1,6 @@
 # Environment Setup
 
-This guide prepares the local app for the current Week 1 foundation.
+This guide prepares local, staging, and production environments.
 
 ## Requirements
 
@@ -18,10 +18,10 @@ Dependencies are installed in the workspace. The local `.npm-cache` folder is ig
 
 ## API Environment
 
-Create `apps/api/.env` from the example:
+Create `apps/api/.env` from the development example for local work:
 
 ```bash
-copy apps\api\.env.example apps\api\.env
+copy apps\api\.env.development.example apps\api\.env
 ```
 
 Required values:
@@ -45,12 +45,34 @@ JWT_REFRESH_TOKEN_TTL_DAYS=30
 
 Do not commit `.env` files.
 
-## Web Environment
+The API loads environment files in this order:
 
-Create `apps/web/.env` from the example:
+1. `apps/api/.env.<NODE_ENV>`
+2. `apps/api/.env`
+
+For staging or production, set `NODE_ENV` before starting the API and inject real secrets through the hosting platform whenever possible. If you need file-based configuration, copy the matching template to the ignored runtime file:
 
 ```bash
-copy apps\web\.env.example apps\web\.env
+copy apps\api\.env.staging.example apps\api\.env.staging
+copy apps\api\.env.production.example apps\api\.env.production
+```
+
+Production-like environments (`staging` and `production`) are validated more strictly:
+
+- `FRONTEND_URL` and every `CORS_ORIGIN` must use HTTPS.
+- `CORS_ORIGIN` cannot contain `*`.
+- `DATABASE_URL` must include `sslmode=require`.
+- `REDIS_URL` must use `rediss://`.
+- JWT secrets must be different, non-placeholder values with at least 32 characters.
+- `ADMIN_PASSWORD` must be non-placeholder and at least 12 characters.
+- Production requires live Stripe keys, Stripe webhook secret, and Gmail SMTP credentials.
+
+## Web Environment
+
+Create `apps/web/.env` from the development example for local work:
+
+```bash
+copy apps\web\.env.development.example apps\web\.env
 ```
 
 Default local API URL:
@@ -58,6 +80,15 @@ Default local API URL:
 ```text
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
+
+For staging and production builds, set the public web variables in the deployment platform or copy the matching template into the environment file used by the build:
+
+```bash
+copy apps\web\.env.staging.example apps\web\.env.production
+copy apps\web\.env.production.example apps\web\.env.production
+```
+
+Next.js embeds `NEXT_PUBLIC_*` values at build time, so rebuild the web app after changing staging or production API URLs.
 
 ## Cloudinary Uploads
 

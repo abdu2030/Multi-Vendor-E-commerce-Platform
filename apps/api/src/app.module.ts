@@ -25,9 +25,12 @@ import { SellerProductsModule } from "./modules/seller-products/seller-products.
 import { SellerUploadsModule } from "./modules/seller-uploads/seller-uploads.module";
 import { UsersModule } from "./modules/users/users.module";
 
+const nodeEnv = process.env.NODE_ENV?.trim() || "development";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: [`.env.${nodeEnv}`, ".env"],
       isGlobal: true,
       validate: validateEnv
     }),
