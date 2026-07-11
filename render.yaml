@@ -1,0 +1,79 @@
+services:
+  - type: web
+    runtime: node
+    name: multi-vendor-ecommerce-api
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build -w apps/api
+    preDeployCommand: npm run prisma:deploy:production -w apps/api
+    startCommand: npm run start -w apps/api
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TOKEN_TTL_SECONDS
+        value: "900"
+      - key: JWT_REFRESH_TOKEN_TTL_DAYS
+        value: "30"
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_TLS
+        value: "true"
+      - key: QUEUE_PREFIX
+        value: marketo-production
+      - key: QUEUE_WORKER_CONCURRENCY
+        value: "5"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: RATE_LIMIT_SKIP_PATHS
+        value: /api/checkout/webhooks/stripe
+      - key: CART_SUMMARY_CACHE_TTL_SECONDS
+        value: "60"
+      - key: CART_COUNT_CACHE_TTL_SECONDS
+        value: "60"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: multi-vendor-ecommerce/production
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: GMAIL_SMTP_HOST
+        value: smtp.gmail.com
+      - key: GMAIL_SMTP_PORT
+        value: "465"
+      - key: GMAIL_SMTP_SECURE
+        value: "true"
+      - key: GMAIL_FROM_NAME
+        value: Marketo
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
