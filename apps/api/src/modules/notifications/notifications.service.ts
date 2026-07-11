@@ -1,10 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import { EmailQueueService } from "../jobs/email-queue.service";
 import { NotificationQueueService } from "../jobs/notification-queue.service";
 import { MailTemplateKind } from "../mail/mail.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { ListNotificationsQueryDto } from "./dto/list-notifications-query.dto";
 
 type CreateNotificationInput = {
   userId: string;
@@ -22,6 +23,73 @@ export class NotificationsService {
     private readonly notificationQueue: NotificationQueueService,
     private readonly emailQueue: EmailQueueService
   ) {}
+
+  async listForUser(userId: string, query: ListNotificationsQueryDto) {
+    const where = {
+      userId,
+      ...(query.unreadOnly ? { readAt: null } : {})
+    };
+    const [notifications, total, unreadCount] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        select: notificationDashboardSelect
+      }),
+      this.prisma.notification.count({ where }),
+      this.prisma.notification.count({ where: { userId, readAt: null } })
+    ]);
+
+    return {
+      notifications,
+      unreadCount,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit)
+      }
+    };
+  }
+
+  async getUnreadCount(userId: string) {
+    const unreadCount = await this.prisma.notification.count({
+      where: { userId, readAt: null }
+    });
+
+    return { unreadCount };
+  }
+
+  async markRead(userId: string, notificationId: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id: notificationId, userId },
+      select: notificationDashboardSelect
+    });
+
+    if (!notification) {
+      throw new NotFoundException("Notification was not found.");
+    }
+
+    if (notification.readAt) {
+      return notification;
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notification.id },
+      data: { readAt: new Date() },
+      select: notificationDashboardSelect
+    });
+  }
+
+  async markAllRead(userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() }
+    });
+
+    return { updated: result.count, unreadCount: 0 };
+  }
 
   async create(input: CreateNotificationInput) {
     const notification = {
@@ -92,6 +160,15 @@ export class NotificationsService {
     };
   }
 }
+
+const notificationDashboardSelect = {
+  id: true,
+  type: true,
+  title: true,
+  message: true,
+  readAt: true,
+  createdAt: true
+} as const;
 
 function createNotificationId(idempotencyKey?: string) {
   if (!idempotencyKey) {

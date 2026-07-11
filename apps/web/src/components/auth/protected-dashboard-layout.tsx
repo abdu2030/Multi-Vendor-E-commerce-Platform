@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
+  Bell,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -20,6 +21,7 @@ import {
   X,
 } from "@/components/imported/design-icons";
 import { AuthUser } from "@/lib/auth";
+import { getUnreadNotificationCount, NOTIFICATIONS_UPDATED_EVENT } from "@/lib/notifications";
 import { useAuth } from "./auth-provider";
 
 type NavigationItem = {
@@ -42,6 +44,13 @@ const navigation: NavigationItem[] = [
     label: "Profile",
     description: "Protected account",
     Icon: Users,
+  },
+  {
+    href: "/dashboard/notifications",
+    label: "Notifications",
+    description: "Updates and alerts",
+    Icon: Bell,
+    roles: ["BUYER", "PENDING_SELLER", "SELLER"],
   },
   {
     href: "/products",
@@ -109,14 +118,44 @@ export function ProtectedDashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading, signOut } = useAuth();
+  const { user, accessToken, isLoading, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const canSeeNotifications = Boolean(
+    user && ["BUYER", "PENDING_SELLER", "SELLER"].includes(user.role),
+  );
+
+  const loadUnreadNotifications = useCallback(async () => {
+    if (!accessToken || !canSeeNotifications) {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    try {
+      const result = await getUnreadNotificationCount(accessToken);
+      setUnreadNotifications(result.unreadCount);
+    } catch {
+      setUnreadNotifications(0);
+    }
+  }, [accessToken, canSeeNotifications]);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/login");
     }
   }, [isLoading, router, user]);
+
+  useEffect(() => {
+    void loadUnreadNotifications();
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnreadNotifications);
+    window.addEventListener("focus", loadUnreadNotifications);
+
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnreadNotifications);
+      window.removeEventListener("focus", loadUnreadNotifications);
+    };
+  }, [loadUnreadNotifications]);
 
   const visibleNavigation = useMemo(() => {
     if (!user) {
@@ -208,6 +247,11 @@ export function ProtectedDashboardLayout({
                     {description}
                   </span>
                 </span>
+                {href === "/dashboard/notifications" && unreadNotifications > 0 ? (
+                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-extrabold text-white">
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -265,6 +309,18 @@ export function ProtectedDashboardLayout({
             <span className="hidden rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-bold text-stone-500 sm:inline-flex">
               {user.email}
             </span>
+            {canSeeNotifications ? (
+              <Link
+                aria-label={`${unreadNotifications} unread notifications`}
+                className="relative rounded-xl p-2 transition-colors hover:bg-stone-100"
+                href="/dashboard/notifications"
+              >
+                <Bell className="h-5 w-5 text-stone-600" />
+                {unreadNotifications > 0 ? (
+                  <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                ) : null}
+              </Link>
+            ) : null}
             <Link
               aria-label="Store settings"
               className="rounded-xl p-2 transition-colors hover:bg-stone-100"
@@ -315,6 +371,10 @@ function initials(name: string) {
 }
 
 function pageTitle(pathname: string) {
+  if (pathname.includes("/notifications")) {
+    return "Notifications";
+  }
+
   if (pathname.includes("/admin/products")) {
     return "Product approvals";
   }
