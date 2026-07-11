@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
+  BarChart2,
   Bell,
   FileText,
   LayoutDashboard,
@@ -94,6 +95,13 @@ const navigation: NavigationItem[] = [
     description: "Store tools",
     Icon: Package,
     roles: ["SELLER"],
+  },
+  {
+    href: "/dashboard/admin",
+    label: "Admin overview",
+    description: "Stats and revenue",
+    Icon: BarChart2,
+    roles: ["ADMIN"],
   },
   {
     href: "/dashboard/admin/seller-applications",
@@ -373,6 +381,10 @@ function initials(name: string) {
 function pageTitle(pathname: string) {
   if (pathname.includes("/notifications")) {
     return "Notifications";
+  }
+
+  if (pathname === "/dashboard/admin") {
+    return "Admin overview";
   }
 
   if (pathname.includes("/admin/products")) {
