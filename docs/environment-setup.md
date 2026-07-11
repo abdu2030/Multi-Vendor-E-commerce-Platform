@@ -185,6 +185,7 @@ Blueprint behavior:
 - Start command: `npm run start -w apps/api`
 - Health check path: `/api/health`
 - Auto deploy trigger: commits to `main`
+- Instance plan: Render free plan for initial verification. Free services can sleep when inactive, so upgrade before relying on background jobs or production traffic.
 
 Deploy steps:
 

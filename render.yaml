@@ -2,7 +2,7 @@ services:
   - type: web
     runtime: node
     name: multi-vendor-ecommerce-api
-    plan: starter
+    plan: free
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build -w apps/api
