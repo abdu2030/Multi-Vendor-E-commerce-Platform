@@ -34,6 +34,7 @@ export function validateEnv(config: EnvConfig) {
   const queueWorkerConcurrency = Number(config.QUEUE_WORKER_CONCURRENCY ?? 5);
   const gmailSmtpPort = Number(config.GMAIL_SMTP_PORT ?? 465);
   const gmailSmtpSecure = parseBoolean(config.GMAIL_SMTP_SECURE, true, "GMAIL_SMTP_SECURE");
+  const allowTestStripeKeys = parseBoolean(config.ALLOW_TEST_STRIPE_KEYS, false, "ALLOW_TEST_STRIPE_KEYS");
   const rateLimitWindowMs = Number(config.RATE_LIMIT_WINDOW_MS ?? 60_000);
   const rateLimitMax = Number(config.RATE_LIMIT_MAX ?? 120);
 
@@ -64,7 +65,7 @@ export function validateEnv(config: EnvConfig) {
   validateUrls(config);
   validateRedis(config, nodeEnv);
   validateGmail(config, gmailSmtpPort);
-  validateProductionLikeConfig(config, nodeEnv);
+  validateProductionLikeConfig(config, nodeEnv, allowTestStripeKeys);
 
   return {
     ...config,
@@ -75,6 +76,7 @@ export function validateEnv(config: EnvConfig) {
     QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
     GMAIL_SMTP_PORT: gmailSmtpPort,
     GMAIL_SMTP_SECURE: gmailSmtpSecure,
+    ALLOW_TEST_STRIPE_KEYS: allowTestStripeKeys,
     RATE_LIMIT_WINDOW_MS: rateLimitWindowMs,
     RATE_LIMIT_MAX: rateLimitMax
   };
@@ -133,7 +135,7 @@ function validateGmail(config: EnvConfig, gmailSmtpPort: number) {
   }
 }
 
-function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment) {
+function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment, allowTestStripeKeys: boolean) {
   if (!productionLikeEnvironments.has(nodeEnv)) {
     return;
   }
@@ -167,8 +169,8 @@ function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment
     requirePresent(config.GMAIL_USER, "GMAIL_USER");
     requirePresent(config.GMAIL_APP_PASSWORD, "GMAIL_APP_PASSWORD");
 
-    if (!config.STRIPE_SECRET_KEY?.startsWith("sk_live_")) {
-      throw new Error("STRIPE_SECRET_KEY must use a live Stripe key in production.");
+    if (!isAllowedProductionStripeKey(config.STRIPE_SECRET_KEY, allowTestStripeKeys)) {
+      throw new Error("STRIPE_SECRET_KEY must use a live Stripe key in production unless ALLOW_TEST_STRIPE_KEYS=true.");
     }
   }
 
@@ -185,6 +187,14 @@ function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment
   for (const key of Object.keys(config)) {
     requireNonPlaceholder(config[key], key);
   }
+}
+
+function isAllowedProductionStripeKey(value: string | undefined, allowTestStripeKeys: boolean) {
+  if (!value) {
+    return false;
+  }
+
+  return value.startsWith("sk_live_") || (allowTestStripeKeys && value.startsWith("sk_test_"));
 }
 
 function requireStrongSecret(value: string | undefined, key: string) {

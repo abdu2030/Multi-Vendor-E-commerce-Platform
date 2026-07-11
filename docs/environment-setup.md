@@ -66,6 +66,7 @@ Production-like environments (`staging` and `production`) are validated more str
 - JWT secrets must be different, non-placeholder values with at least 32 characters.
 - `ADMIN_PASSWORD` must be non-placeholder and at least 12 characters.
 - Production requires live Stripe keys, Stripe webhook secret, and Gmail SMTP credentials.
+- During deployment testing only, `ALLOW_TEST_STRIPE_KEYS=true` permits `sk_test_` Stripe keys while `NODE_ENV=production`. Remove it or set it to `false` before accepting real payments.
 
 ## Web Environment
 
@@ -193,14 +194,15 @@ Deploy steps:
 2. Select `render.yaml` from the repository root.
 3. Fill every `sync: false` environment variable from the production values in `apps/api/.env` or your password manager.
 4. Set `FRONTEND_URL` and `CORS_ORIGIN` to HTTPS production URLs. Include the Render API URL in any frontend API config after deploy.
-5. Before the first deploy, run production migrations from your machine or CI:
+5. If Stripe has not verified your business yet, set `ALLOW_TEST_STRIPE_KEYS=true` in Render and use your `sk_test_` key. Switch back to `false` and use `sk_live_` before real production payments.
+6. Before the first deploy, run production migrations from your machine or CI:
 
 ```bash
 npm run prisma:deploy:production -w apps/api
 ```
 
-6. Confirm the first deploy finishes the build and starts the API.
-7. Verify health:
+7. Confirm the first deploy finishes the build and starts the API.
+8. Verify health:
 
 ```bash
 curl https://YOUR_RENDER_SERVICE.onrender.com/api/health

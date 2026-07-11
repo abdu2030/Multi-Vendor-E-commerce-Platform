@@ -58,6 +58,8 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: ALLOW_TEST_STRIPE_KEYS
+        value: "false"
       - key: GMAIL_USER
         sync: false
       - key: GMAIL_APP_PASSWORD

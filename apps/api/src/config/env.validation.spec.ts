@@ -74,4 +74,22 @@ describe("validateEnv", () => {
     expect(validated.NODE_ENV).toBe("production");
     expect(validated.GMAIL_SMTP_PORT).toBe(465);
   });
+
+  it("allows production test Stripe keys only when explicitly enabled", () => {
+    const validated = validateEnv({
+      ...baseConfig,
+      NODE_ENV: "production",
+      FRONTEND_URL: "https://market.internal",
+      CORS_ORIGIN: "https://market.internal",
+      REDIS_URL: "rediss://default:password@redis.market.internal:6379",
+      STRIPE_SECRET_KEY: "sk_test_123",
+      STRIPE_WEBHOOK_SECRET: "whsec_123",
+      GMAIL_USER: "sender@market.internal",
+      GMAIL_APP_PASSWORD: "app-password",
+      ADMIN_PASSWORD: "long-admin-password",
+      ALLOW_TEST_STRIPE_KEYS: "true"
+    });
+
+    expect(validated.ALLOW_TEST_STRIPE_KEYS).toBe(true);
+  });
 });
