@@ -17,6 +17,7 @@ import {
   Shield,
   ShoppingBag,
   ShoppingCart,
+  Tag,
   Truck,
   Users,
   X,
@@ -112,9 +113,16 @@ const navigation: NavigationItem[] = [
   },
   {
     href: "/dashboard/admin/products",
-    label: "Product approvals",
+    label: "Product moderation",
     description: "Listing review",
     Icon: ShoppingBag,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/dashboard/admin/categories",
+    label: "Categories",
+    description: "Catalog taxonomy",
+    Icon: Tag,
     roles: ["ADMIN"],
   },
 ];
@@ -388,7 +396,11 @@ function pageTitle(pathname: string) {
   }
 
   if (pathname.includes("/admin/products")) {
-    return "Product approvals";
+    return "Product moderation";
+  }
+
+  if (pathname.includes("/admin/categories")) {
+    return "Category management";
   }
 
   if (pathname.includes("/admin")) {
