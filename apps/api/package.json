@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node node_modules/@nestjs/cli/bin/nest.js start --watch",
+    "prebuild": "npm run prisma:generate",
     "build": "node ../../node_modules/typescript/bin/tsc -p tsconfig.build.json --incremental false",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",

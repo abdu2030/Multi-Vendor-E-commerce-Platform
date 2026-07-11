@@ -180,7 +180,8 @@ The repository includes a Render Blueprint at `render.yaml` for the backend API.
 
 Blueprint behavior:
 
-- Build command: `npm ci && npm run build -w apps/api`
+- Build command: `npm ci --include=dev && npm run build -w apps/api`
+- API builds run `prisma generate` automatically before TypeScript compilation.
 - Start command: `npm run start -w apps/api`
 - Health check path: `/api/health`
 - Auto deploy trigger: commits to `main`
