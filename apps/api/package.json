@@ -16,6 +16,7 @@
     "prisma:status:production": "node scripts/deploy-production-db.js --env-path .env.production --status",
     "prisma:deploy:production": "node scripts/deploy-production-db.js --env-path .env.production",
     "prisma:studio": "node ../../node_modules/prisma/build/index.js studio",
+    "qa:production": "node scripts/production-qa.js",
     "seed": "node prisma/seed.js",
     "seed:admin": "node prisma/seed.js",
     "seed:starter": "node prisma/seed.js"

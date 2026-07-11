@@ -322,6 +322,23 @@ CORS_ORIGIN=https://YOUR_VERCEL_APP.vercel.app
 
 Then redeploy the Render API and verify the frontend can log in, load products, and call dashboard APIs.
 
+## Production QA
+
+Use the production QA runbook after backend and frontend deployment:
+
+```text
+docs/production-qa.md
+```
+
+The automated API smoke flow can be run with:
+
+```bash
+set PRODUCTION_API_URL=https://YOUR_RENDER_SERVICE.onrender.com/api
+npm run qa:production -w apps/api
+```
+
+In PowerShell, set the URL with `$env:PRODUCTION_API_URL="https://YOUR_RENDER_SERVICE.onrender.com/api"` before running the command.
+
 ## Local Development
 
 Run the API:
