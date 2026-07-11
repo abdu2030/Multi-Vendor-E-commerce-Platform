@@ -68,6 +68,23 @@ describe("OrdersService", () => {
       shippingAddress: { line1: "123 Market Street" }
     });
   });
+
+  it("throws when a buyer tries to load an order they do not own", async () => {
+    const prisma = {
+      order: {
+        findFirst: jest.fn().mockResolvedValue(null)
+      }
+    };
+    const service = new OrdersService(prisma as never);
+
+    await expect(service.getBuyerOrder("buyer_1", "other_order")).rejects.toThrow("Order was not found.");
+    expect(prisma.order.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: "other_order",
+        buyerId: "buyer_1"
+      }
+    }));
+  });
 });
 
 function buildBuyerOrder() {

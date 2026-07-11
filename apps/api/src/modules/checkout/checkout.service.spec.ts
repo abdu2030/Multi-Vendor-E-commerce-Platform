@@ -221,6 +221,65 @@ describe("CheckoutService webhook order handling", () => {
       })
     );
   });
+
+  it("rejects paid checkout when inventory cannot be decremented", async () => {
+    const invalidate = jest.fn();
+    const enqueue = jest.fn();
+    const cart = buildCheckoutCart();
+    const tx = {
+      payment: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "payment_1",
+          orderId: null,
+          buyerId: "buyer_1",
+          amountCents: 4000,
+          currency: "USD",
+          status: PaymentStatus.PENDING
+        })
+      },
+      cart: {
+        findFirst: jest.fn().mockResolvedValue(cart)
+      },
+      address: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: "address_1",
+          label: "Home",
+          line1: "123 Market Street",
+          line2: null,
+          city: "Addis Ababa",
+          state: null,
+          country: "ET",
+          postalCode: "1000"
+        })
+      },
+      product: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 })
+      },
+      inventoryLog: { create: jest.fn() },
+      order: { create: jest.fn() },
+      cartItem: { deleteMany: jest.fn() }
+    };
+    const prisma = {
+      $transaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx))
+    };
+    const service = createService(prisma, { invalidate }, { enqueue });
+    const session = {
+      id: "cs_test_1",
+      client_reference_id: "cart_1",
+      metadata: {
+        userId: "buyer_1",
+        addressId: "address_1"
+      }
+    };
+
+    await expect((service as unknown as {
+      createOrderFromPaidCheckoutSession: (checkoutSession: typeof session, eventId: string) => Promise<unknown>;
+    }).createOrderFromPaidCheckoutSession(session, "evt_paid_1")).rejects.toThrow("Insufficient inventory for Test Shoes.");
+    expect(tx.inventoryLog.create).not.toHaveBeenCalled();
+    expect(tx.order.create).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
 });
 
 function buildCheckoutCart() {
