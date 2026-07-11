@@ -175,6 +175,78 @@ npm run prisma:deploy:production -w apps/api -- --seed-admin
 
 The production migration runner masks database credentials in logs and refuses placeholder database URLs.
 
+## Production Service Configuration
+
+Configure these values in the Render API service environment. Do not commit real service credentials.
+
+### Cloudinary
+
+Render environment variables:
+
+```text
+CLOUDINARY_CLOUD_NAME=your Cloudinary cloud name
+CLOUDINARY_API_KEY=your Cloudinary API key
+CLOUDINARY_API_SECRET=your Cloudinary API secret
+CLOUDINARY_UPLOAD_FOLDER=multi-vendor-ecommerce/production
+```
+
+Use Cloudinary's dashboard API credentials for the production cloud. Product images, store logos, and store banners depend on these values.
+
+### Upstash Redis
+
+Render environment variables:
+
+```text
+REDIS_URL=rediss://default:PASSWORD@HOST.upstash.io:6379
+REDIS_TLS=true
+QUEUE_PREFIX=marketo-production
+QUEUE_WORKER_CONCURRENCY=5
+```
+
+Production must use `rediss://`, not `redis://`. If a Redis URL was pasted into chat, rotate the Upstash credential and update Render with the new `rediss://` URL.
+
+### Gmail SMTP
+
+Render environment variables:
+
+```text
+GMAIL_USER=sender@gmail.com
+GMAIL_APP_PASSWORD=your Gmail app password
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=465
+GMAIL_SMTP_SECURE=true
+GMAIL_FROM_NAME=Marketo
+```
+
+Use a Gmail app password from an account with 2-Step Verification enabled. Do not use the normal Gmail account password.
+
+### Stripe Webhook
+
+Backend webhook URL:
+
+```text
+https://multi-vendor-ecommerce-api.onrender.com/api/checkout/webhooks/stripe
+```
+
+If the Render service URL changes, replace the hostname and keep the path `/api/checkout/webhooks/stripe`.
+
+In Stripe Dashboard, create a webhook endpoint for that URL and subscribe to the checkout/payment events used by the marketplace. At minimum, enable:
+
+```text
+checkout.session.completed
+payment_intent.payment_failed
+payment_intent.succeeded
+charge.refunded
+```
+
+After creating the webhook endpoint, copy its signing secret into Render:
+
+```text
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+During deployment testing, `ALLOW_TEST_STRIPE_KEYS=true` can be used with `sk_test_` keys. Before real production payments, set `ALLOW_TEST_STRIPE_KEYS=false`, use `sk_live_`, and create the webhook endpoint in Stripe live mode.
+
 ## Render API Deployment
 
 The repository includes a Render Blueprint at `render.yaml` for the backend API. Render supports Node web services with `buildCommand`, `preDeployCommand`, `startCommand`, and `healthCheckPath`; this project uses `/api/health` for the platform health check.
