@@ -24,12 +24,7 @@ export class EmailQueueService implements OnModuleInit, OnModuleDestroy {
     this.queue = new Queue<QueuedEmailJob>(EMAILS_QUEUE, {
       connection: this.redis.createProducerConnection(),
       prefix: this.redis.queuePrefix(),
-      defaultJobOptions: {
-        attempts: 5,
-        backoff: { type: "exponential", delay: 3_000 },
-        removeOnComplete: { count: 2_000 },
-        removeOnFail: { count: 5_000 }
-      }
+      defaultJobOptions: EMAIL_QUEUE_DEFAULT_JOB_OPTIONS
     });
     this.queue.on("error", (error) => this.logger.error(`Email queue error: ${error.message}`));
   }
@@ -52,3 +47,10 @@ export class EmailQueueService implements OnModuleInit, OnModuleDestroy {
     await this.queue?.close();
   }
 }
+
+export const EMAIL_QUEUE_DEFAULT_JOB_OPTIONS = {
+  attempts: 5,
+  backoff: { type: "exponential", delay: 3_000 },
+  removeOnComplete: { count: 2_000 },
+  removeOnFail: { count: 5_000 }
+} as const;

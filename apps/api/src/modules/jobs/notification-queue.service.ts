@@ -20,12 +20,7 @@ export class NotificationQueueService implements OnModuleInit, OnModuleDestroy {
     this.queue = new Queue<CreateNotificationJob>(NOTIFICATIONS_QUEUE, {
       connection: this.redis.createProducerConnection(),
       prefix: this.redis.queuePrefix(),
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 2_000 },
-        removeOnComplete: { count: 1_000 },
-        removeOnFail: { count: 5_000 }
-      }
+      defaultJobOptions: NOTIFICATION_QUEUE_DEFAULT_JOB_OPTIONS
     });
     this.queue.on("error", (error) => this.logger.error(`Notification queue error: ${error.message}`));
   }
@@ -49,3 +44,10 @@ export class NotificationQueueService implements OnModuleInit, OnModuleDestroy {
     await this.queue?.close();
   }
 }
+
+export const NOTIFICATION_QUEUE_DEFAULT_JOB_OPTIONS = {
+  attempts: 3,
+  backoff: { type: "exponential", delay: 2_000 },
+  removeOnComplete: { count: 1_000 },
+  removeOnFail: { count: 5_000 }
+} as const;
