@@ -4,6 +4,7 @@ import { AppController } from "./app.controller";
 import { validateEnv } from "./config/env.validation";
 import { AdminCategoriesModule } from "./modules/admin-categories/admin-categories.module";
 import { AdminDashboardModule } from "./modules/admin-dashboard/admin-dashboard.module";
+import { AdminOrdersModule } from "./modules/admin-orders/admin-orders.module";
 import { AdminSellerApplicationsModule } from "./modules/admin-seller-applications/admin-seller-applications.module";
 import { AdminProductsModule } from "./modules/admin-products/admin-products.module";
 import { AuthModule } from "./modules/auth/auth.module";
@@ -41,6 +42,7 @@ import { UsersModule } from "./modules/users/users.module";
     CategoriesModule,
     AdminCategoriesModule,
     AdminDashboardModule,
+    AdminOrdersModule,
     AdminSellerApplicationsModule,
     AdminProductsModule,
     ReviewsModule,

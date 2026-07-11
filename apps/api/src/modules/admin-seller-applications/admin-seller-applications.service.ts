@@ -281,6 +281,20 @@ export class AdminSellerApplicationsService {
           },
         },
       });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: adminUserId,
+          action: "USER_SELLER_ACCESS_SUSPENDED",
+          entity: "User",
+          entityId: application.userId,
+          metadata: {
+            applicationId: application.id,
+            previousApplicationStatus: application.status,
+            newApplicationStatus: SellerApplicationStatus.SUSPENDED,
+            reason: reason?.trim() || null,
+          },
+        },
+      });
 
       if (sellerProfile) {
         await tx.auditLog.create({

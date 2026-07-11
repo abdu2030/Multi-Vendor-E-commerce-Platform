@@ -1,10 +1,14 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { ProductStatus } from "@prisma/client";
+import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class AdminProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogs: AuditLogsService
+  ) {}
 
   getPending() {
     return this.prisma.product.findMany({
@@ -40,18 +44,16 @@ export class AdminProductsService {
         data: { status: ProductStatus.APPROVED },
         select: adminProductDetailSelect
       }),
-      this.prisma.auditLog.create({
-        data: {
-          actorUserId: adminUserId,
-          action: "PRODUCT_APPROVED",
-          entity: "Product",
-          entityId: product.id,
-          metadata: {
-            previousStatus: product.status,
-            newStatus: ProductStatus.APPROVED,
-            storeId: product.storeId,
-            sellerUserId: product.store.sellerProfile.userId
-          }
+      this.auditLogs.create({
+        actorUserId: adminUserId,
+        action: "PRODUCT_APPROVED",
+        entity: "Product",
+        entityId: product.id,
+        metadata: {
+          previousStatus: product.status,
+          newStatus: ProductStatus.APPROVED,
+          storeId: product.storeId,
+          sellerUserId: product.store.sellerProfile.userId
         }
       })
     ]);
@@ -74,19 +76,17 @@ export class AdminProductsService {
         data: { status: ProductStatus.REJECTED },
         select: adminProductDetailSelect
       }),
-      this.prisma.auditLog.create({
-        data: {
-          actorUserId: adminUserId,
-          action: "PRODUCT_REJECTED",
-          entity: "Product",
-          entityId: product.id,
-          metadata: {
-            previousStatus: product.status,
-            newStatus: ProductStatus.REJECTED,
-            reason: cleanReason,
-            storeId: product.storeId,
-            sellerUserId: product.store.sellerProfile.userId
-          }
+      this.auditLogs.create({
+        actorUserId: adminUserId,
+        action: "PRODUCT_REJECTED",
+        entity: "Product",
+        entityId: product.id,
+        metadata: {
+          previousStatus: product.status,
+          newStatus: ProductStatus.REJECTED,
+          reason: cleanReason,
+          storeId: product.storeId,
+          sellerUserId: product.store.sellerProfile.userId
         }
       })
     ]);
