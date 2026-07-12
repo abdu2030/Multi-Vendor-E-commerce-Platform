@@ -24,6 +24,7 @@ import {
 } from "@/components/imported/design-icons";
 import { AuthUser } from "@/lib/auth";
 import { getUnreadNotificationCount, NOTIFICATIONS_UPDATED_EVENT } from "@/lib/notifications";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useAuth } from "./auth-provider";
 
 type NavigationItem = {
@@ -337,6 +338,7 @@ export function ProtectedDashboardLayout({
                 ) : null}
               </Link>
             ) : null}
+            <ThemeToggle compact />
             <Link
               aria-label="Store settings"
               className="rounded-xl p-2 transition-colors hover:bg-stone-100"

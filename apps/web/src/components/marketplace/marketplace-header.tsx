@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Package } from "@/components/imported/design-icons";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function MarketplaceHeader({
   active = "products",
@@ -22,7 +23,7 @@ export function MarketplaceHeader({
             Marketo
           </span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-bold">
+        <nav className="flex items-center gap-3 text-sm font-bold sm:gap-4">
           <Link className={navClass(active === "home")} href="/">
             Home
           </Link>
@@ -51,6 +52,7 @@ export function MarketplaceHeader({
               Sign in
             </Link>
           )}
+          <ThemeToggle compact />
         </nav>
       </div>
     </header>
