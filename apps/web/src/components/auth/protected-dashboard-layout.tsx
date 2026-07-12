@@ -198,7 +198,7 @@ export function ProtectedDashboardLayout({
 
   return (
     <div
-      className="flex min-h-screen bg-stone-100 text-stone-900"
+      className="flex h-screen overflow-hidden bg-stone-100 text-stone-900"
       style={{
         fontFamily: '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
       }}
@@ -213,7 +213,7 @@ export function ProtectedDashboardLayout({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-stone-900 transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`dashboard-sidebar-shell fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-shrink-0 flex-col bg-stone-900 transition-transform duration-200 lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -235,7 +235,7 @@ export function ProtectedDashboardLayout({
 
         <nav
           aria-label="Dashboard navigation"
-          className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
+          className="dashboard-sidebar-scrollbar flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
         >
           {visibleNavigation.map(({ href, label, description, Icon }) => {
             const active =
@@ -300,8 +300,8 @@ export function ProtectedDashboardLayout({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-4 sm:px-6">
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex flex-shrink-0 items-center justify-between border-b border-stone-200 bg-white px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               aria-label="Open sidebar"
@@ -354,7 +354,7 @@ export function ProtectedDashboardLayout({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <main className="dashboard-main-scrollbar min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           {canSeeAdminRoute ? (
             children
           ) : (
