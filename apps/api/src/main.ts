@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { createCsrfOriginMiddleware } from "./common/middleware/csrf-origin.middleware";
 import { createRateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { createRequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
 import { createValidationException } from "./common/validation/validation-errors";
@@ -25,7 +26,22 @@ async function bootstrap() {
   express.disable("x-powered-by");
   express.set("trust proxy", 1);
   app.setGlobalPrefix("api");
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'none'"],
+          baseUri: ["'none'"],
+          formAction: ["'none'"],
+          frameAncestors: ["'none'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          scriptSrc: ["'none'"],
+          styleSrc: ["'none'"],
+          connectSrc: ["'self'"]
+        }
+      }
+    })
+  );
   app.use(createRequestLoggingMiddleware());
   app.use(
     createRateLimitMiddleware({
@@ -36,13 +52,18 @@ async function bootstrap() {
       )
     })
   );
+  app.use(
+    createCsrfOriginMiddleware(corsOrigins, {
+      exemptPaths: ["/api/checkout/webhooks/stripe"]
+    })
+  );
   app.use(json({ limit: "10mb", verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: "10mb" }));
   app.enableCors({
     origin: createCorsOriginHandler(corsOrigins),
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    allowedHeaders: ["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-CSRF-Token"],
     maxAge: 86_400
   });
   app.useGlobalPipes(
@@ -67,6 +88,5 @@ function captureRawBody(req: Request & { rawBody?: Buffer }, _res: Response, buf
     req.rawBody = Buffer.from(buffer);
   }
 }
-
 
 void bootstrap();

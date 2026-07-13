@@ -14,7 +14,7 @@ export class CreateReviewDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(5)
-  @IsUrl({ require_tld: false }, { each: true })
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ["http", "https"] }, { each: true })
   @MaxLength(500, { each: true })
   images?: string[];
 }

@@ -22,10 +22,10 @@ export class UpdateStoreSettingsDto {
   bio?: string;
 
   @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
   logoUrl?: string;
 
   @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
   bannerUrl?: string;
 }

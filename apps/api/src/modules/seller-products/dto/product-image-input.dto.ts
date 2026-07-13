@@ -2,7 +2,7 @@ import { Type } from "class-transformer";
 import { IsInt, IsOptional, IsString, IsUrl, MaxLength, Min } from "class-validator";
 
 export class ProductImageInputDto {
-  @IsUrl({ require_protocol: true })
+  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
   @MaxLength(500)
   url!: string;
 

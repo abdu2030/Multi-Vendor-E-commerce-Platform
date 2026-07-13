@@ -14,10 +14,9 @@ import {
   AuthUser,
   LoginInput,
   RegisterInput,
-  getMe,
-  login,
   logout,
   refreshSession as requestRefreshSession,
+  login,
   register
 } from "@/lib/auth";
 
@@ -32,8 +31,8 @@ type AuthState = {
   refreshCurrentSession: () => Promise<AuthSession | null>;
 };
 
-const ACCESS_TOKEN_KEY = "multivendor.accessToken";
-const REFRESH_TOKEN_KEY = "multivendor.refreshToken";
+const LEGACY_ACCESS_TOKEN_KEY = "multivendor.accessToken";
+const LEGACY_REFRESH_TOKEN_KEY = "multivendor.refreshToken";
 const USER_KEY = "multivendor.user";
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -44,16 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const persistSession = useCallback((session: AuthSession) => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
     localStorage.setItem(USER_KEY, JSON.stringify(session.user));
     setAccessToken(session.accessToken);
     setUser(session.user);
   }, []);
 
   const clearSession = useCallback(() => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setAccessToken(null);
     setUser(null);
@@ -68,31 +67,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const restoreSession = async () => {
-      const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      const storedUser = localStorage.getItem(USER_KEY);
+      localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+      localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
 
-      if (storedAccessToken) {
-        setAccessToken(storedAccessToken);
-      }
+      try {
+        const storedUser = localStorage.getItem(USER_KEY);
 
-      if (storedUser) {
-        setUser(JSON.parse(storedUser) as AuthUser);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser) as AuthUser);
+        }
+      } catch {
+        localStorage.removeItem(USER_KEY);
       }
 
       try {
-        if (storedAccessToken) {
-          const currentUser = await getMe(storedAccessToken);
-          setUser(currentUser);
-          localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
-        } else {
-          await refreshCurrentSession();
-        }
+        await refreshCurrentSession();
       } catch {
-        try {
-          await refreshCurrentSession();
-        } catch {
-          clearSession();
-        }
+        clearSession();
       } finally {
         setIsLoading(false);
       }
