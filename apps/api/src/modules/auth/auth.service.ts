@@ -270,14 +270,19 @@ export class AuthService {
 
   private async createSession(user: User, options: CreateSessionOptions = {}) {
     const publicUser = this.toPublicUser(user);
-    const accessToken = this.jwtTokenService.signAccessToken(publicUser);
+    const sessionId = options.refreshTokenId ?? randomUUID();
+    const accessToken = this.jwtTokenService.signAccessToken({
+      id: user.id,
+      role: user.role,
+      sessionId
+    });
     const refreshToken = options.refreshToken ?? this.generateRefreshToken();
     const tokenStore = options.tokenStore ?? this.prisma;
     const refreshTokenTtlDays = Number(this.config.get("JWT_REFRESH_TOKEN_TTL_DAYS") ?? 30);
 
     await tokenStore.refreshToken.create({
       data: {
-        ...(options.refreshTokenId ? { id: options.refreshTokenId } : {}),
+        id: sessionId,
         userId: user.id,
         tokenHash: options.refreshTokenHash ?? this.hashRefreshToken(refreshToken),
         familyId: options.familyId ?? randomUUID(),

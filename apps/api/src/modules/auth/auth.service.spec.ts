@@ -104,8 +104,12 @@ describe("AuthService", () => {
     expect(JSON.stringify(prisma.user.create.mock.calls[0][0])).not.toContain("StrongPass123");
     expect(jwt.signAccessToken).toHaveBeenCalledWith(expect.objectContaining({
       id: user.id,
-      email: user.email,
-      role: Role.BUYER
+      role: Role.BUYER,
+      sessionId: expect.any(String)
+    }));
+    expect(jwt.signAccessToken).not.toHaveBeenCalledWith(expect.objectContaining({
+      email: expect.any(String),
+      fullName: expect.any(String)
     }));
     expect(prisma.refreshToken.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

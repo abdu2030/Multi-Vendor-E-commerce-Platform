@@ -5,6 +5,8 @@ type AppEnvironment = "development" | "test" | "staging" | "production";
 const appEnvironments = ["development", "test", "staging", "production"] as const;
 const productionLikeEnvironments = new Set<AppEnvironment>(["staging", "production"]);
 const requiredVariables = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"] as const;
+const defaultJwtAccessIssuer = "marketo-api";
+const defaultJwtAccessAudience = "marketo-web";
 const placeholderValues = new Set([
   "change_this_password",
   "replace_with_strong_secret",
@@ -51,8 +53,8 @@ export function validateEnv(config: EnvConfig) {
     throw new Error("PORT must be a valid TCP port.");
   }
 
-  if (!Number.isInteger(accessTokenTtlSeconds) || accessTokenTtlSeconds < 60) {
-    throw new Error("JWT_ACCESS_TOKEN_TTL_SECONDS must be at least 60 seconds.");
+  if (!Number.isInteger(accessTokenTtlSeconds) || accessTokenTtlSeconds < 60 || accessTokenTtlSeconds > 900) {
+    throw new Error("JWT_ACCESS_TOKEN_TTL_SECONDS must be between 60 and 900 seconds.");
   }
 
   if (!Number.isInteger(refreshTokenTtlDays) || refreshTokenTtlDays < 1) {
@@ -81,6 +83,8 @@ export function validateEnv(config: EnvConfig) {
     NODE_ENV: nodeEnv,
     PORT: port,
     JWT_ACCESS_TOKEN_TTL_SECONDS: accessTokenTtlSeconds,
+    JWT_ACCESS_ISSUER: config.JWT_ACCESS_ISSUER ?? defaultJwtAccessIssuer,
+    JWT_ACCESS_AUDIENCE: config.JWT_ACCESS_AUDIENCE ?? defaultJwtAccessAudience,
     JWT_REFRESH_TOKEN_TTL_DAYS: refreshTokenTtlDays,
     QUEUE_WORKER_CONCURRENCY: queueWorkerConcurrency,
     GMAIL_SMTP_PORT: gmailSmtpPort,
