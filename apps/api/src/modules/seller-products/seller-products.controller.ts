@@ -1,11 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
-import { ProductStatus, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { CreateSellerProductDto } from "./dto/create-seller-product.dto";
+import { ListSellerProductsQueryDto } from "./dto/list-seller-products-query.dto";
 import { UpdateSellerProductDto } from "./dto/update-seller-product.dto";
 import { SellerProductsService } from "./seller-products.service";
 
@@ -18,14 +20,13 @@ export class SellerProductsController {
   @Get()
   getAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query("status") status?: ProductStatus,
-    @Query("categoryId") categoryId?: string
+    @Query() query: ListSellerProductsQueryDto
   ) {
-    return this.sellerProductsService.getAll(user.id, { status, categoryId });
+    return this.sellerProductsService.getAll(user.id, query);
   }
 
   @Get(":id")
-  getOne(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+  getOne(@CurrentUser() user: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.sellerProductsService.getOne(user.id, id);
   }
 
@@ -37,19 +38,19 @@ export class SellerProductsController {
   @Patch(":id")
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("id") id: string,
+    @Param("id", ParseCuidPipe) id: string,
     @Body() dto: UpdateSellerProductDto
   ) {
     return this.sellerProductsService.update(user.id, id, dto);
   }
 
   @Patch(":id/archive")
-  archive(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+  archive(@CurrentUser() user: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.sellerProductsService.archive(user.id, id);
   }
 
   @Delete(":id")
-  delete(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+  delete(@CurrentUser() user: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.sellerProductsService.archive(user.id, id);
   }
 }

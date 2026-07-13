@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { CartService } from "./cart.service";
 import { AddCartItemDto } from "./dto/add-cart-item.dto";
@@ -34,14 +35,14 @@ export class CartController {
   @Patch("items/:itemId")
   updateItem(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("itemId") itemId: string,
+    @Param("itemId", ParseCuidPipe) itemId: string,
     @Body() dto: UpdateCartItemDto
   ) {
     return this.cartService.updateItem(user.id, itemId, dto);
   }
 
   @Delete("items/:itemId")
-  removeItem(@CurrentUser() user: AuthenticatedUser, @Param("itemId") itemId: string) {
+  removeItem(@CurrentUser() user: AuthenticatedUser, @Param("itemId", ParseCuidPipe) itemId: string) {
     return this.cartService.removeItem(user.id, itemId);
   }
 

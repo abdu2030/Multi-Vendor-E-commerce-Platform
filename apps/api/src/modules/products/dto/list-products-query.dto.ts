@@ -1,5 +1,6 @@
 import { Transform } from "class-transformer";
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsCuid } from "../../../common/validation/cuid";
 
 export const productSortOptions = [
   "newest",
@@ -14,22 +15,25 @@ export type ProductSort = (typeof productSortOptions)[number];
 export class ListProductsQueryDto {
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   q?: string;
 
   @IsOptional()
-  @IsString()
+  @IsCuid()
   categoryId?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   categorySlug?: string;
 
   @IsOptional()
-  @IsString()
+  @IsCuid()
   storeId?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   storeSlug?: string;
 
   @IsOptional()

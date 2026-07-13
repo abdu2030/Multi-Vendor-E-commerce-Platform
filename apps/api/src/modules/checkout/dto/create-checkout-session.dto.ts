@@ -1,7 +1,6 @@
-import { IsString, MinLength } from "class-validator";
+import { IsCuid } from "../../../common/validation/cuid";
 
 export class CreateCheckoutSessionDto {
-  @IsString()
-  @MinLength(1)
+  @IsCuid()
   addressId!: string;
 }

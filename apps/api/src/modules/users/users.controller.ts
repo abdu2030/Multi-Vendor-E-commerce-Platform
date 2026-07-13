@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { CreateAddressDto } from "./dto/create-address.dto";
 import { UsersService } from "./users.service";
@@ -26,7 +27,7 @@ export class UsersController {
   }
 
   @Patch("addresses/:addressId/default")
-  setDefaultAddress(@CurrentUser() user: AuthenticatedUser, @Param("addressId") addressId: string) {
+  setDefaultAddress(@CurrentUser() user: AuthenticatedUser, @Param("addressId", ParseCuidPipe) addressId: string) {
     return this.usersService.setDefaultAddress(user.id, addressId);
   }
 }

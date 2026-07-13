@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { UploadImageDto } from "./dto/upload-image.dto";
@@ -27,7 +28,7 @@ export class SellerUploadsController {
   @Post("products/:productId/images")
   uploadProductImage(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("productId") productId: string,
+    @Param("productId", ParseCuidPipe) productId: string,
     @Body() dto: UploadImageDto
   ) {
     return this.sellerUploadsService.uploadProductImage(user.id, productId, dto);

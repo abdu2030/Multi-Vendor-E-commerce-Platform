@@ -3,10 +3,12 @@ import { Role } from "@prisma/client";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { AdminCategoriesService } from "./admin-categories.service";
 import { CreateCategoryDto } from "./dto/create-category.dto";
+import { ListAdminCategoriesQueryDto } from "./dto/list-admin-categories-query.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
 
 @Controller("admin/categories")
@@ -16,13 +18,13 @@ export class AdminCategoriesController {
   constructor(private readonly adminCategoriesService: AdminCategoriesService) {}
 
   @Get()
-  getAll(@Query("includeInactive") includeInactive?: string) {
-    return this.adminCategoriesService.getAll(includeInactive === "true");
+  getAll(@Query() query: ListAdminCategoriesQueryDto) {
+    return this.adminCategoriesService.getAll(query.includeInactive);
   }
 
   @Get("tree")
-  getTree(@Query("includeInactive") includeInactive?: string) {
-    return this.adminCategoriesService.getTree(includeInactive === "true");
+  getTree(@Query() query: ListAdminCategoriesQueryDto) {
+    return this.adminCategoriesService.getTree(query.includeInactive);
   }
 
   @Post()
@@ -33,19 +35,19 @@ export class AdminCategoriesController {
   @Patch(":id")
   update(
     @CurrentUser() admin: AuthenticatedUser,
-    @Param("id") id: string,
+    @Param("id", ParseCuidPipe) id: string,
     @Body() dto: UpdateCategoryDto
   ) {
     return this.adminCategoriesService.update(id, dto, admin.id);
   }
 
   @Patch(":id/activate")
-  activate(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+  activate(@CurrentUser() admin: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.adminCategoriesService.setActive(id, true, admin.id);
   }
 
   @Patch(":id/deactivate")
-  deactivate(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+  deactivate(@CurrentUser() admin: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.adminCategoriesService.setActive(id, false, admin.id);
   }
 }

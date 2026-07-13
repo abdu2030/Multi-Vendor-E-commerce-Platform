@@ -1,3 +1,4 @@
+import { ProductStatus } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -11,13 +12,13 @@ import {
   MinLength,
   ValidateNested
 } from "class-validator";
-import { ProductStatus } from "@prisma/client";
+import { IsCuid } from "../../../common/validation/cuid";
 import { ProductImageInputDto } from "./product-image-input.dto";
 import { ProductVariantInputDto } from "./product-variant-input.dto";
 
 export class UpdateSellerProductDto {
   @IsOptional()
-  @IsString()
+  @IsCuid()
   categoryId?: string;
 
   @IsOptional()
@@ -36,6 +37,7 @@ export class UpdateSellerProductDto {
   description?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   priceCents?: number;
@@ -46,6 +48,7 @@ export class UpdateSellerProductDto {
   currency?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   stockQuantity?: number;

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { OrdersService } from "./orders.service";
 
@@ -15,7 +16,7 @@ export class OrdersController {
   }
 
   @Get(":id")
-  getMine(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+  getMine(@CurrentUser() user: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.ordersService.getBuyerOrder(user.id, id);
   }
 }

@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { AdminSellerApplicationsService } from "./admin-seller-applications.service";
@@ -21,14 +22,14 @@ export class AdminSellerApplicationsController {
   }
 
   @Patch(":id/approve")
-  approve(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+  approve(@CurrentUser() admin: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.adminSellerApplicationsService.approve(id, admin.id);
   }
 
   @Patch(":id/reject")
   reject(
     @CurrentUser() admin: AuthenticatedUser,
-    @Param("id") id: string,
+    @Param("id", ParseCuidPipe) id: string,
     @Body() dto: RejectSellerApplicationDto
   ) {
     return this.adminSellerApplicationsService.reject(id, admin.id, dto.reason);
@@ -37,7 +38,7 @@ export class AdminSellerApplicationsController {
   @Patch(":id/suspend")
   suspend(
     @CurrentUser() admin: AuthenticatedUser,
-    @Param("id") id: string,
+    @Param("id", ParseCuidPipe) id: string,
     @Body() dto: SuspendSellerApplicationDto
   ) {
     return this.adminSellerApplicationsService.suspend(id, admin.id, dto.reason);

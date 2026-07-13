@@ -12,11 +12,12 @@ import {
   MinLength,
   ValidateNested
 } from "class-validator";
+import { IsCuid } from "../../../common/validation/cuid";
 import { ProductImageInputDto } from "./product-image-input.dto";
 import { ProductVariantInputDto } from "./product-variant-input.dto";
 
 export class CreateSellerProductDto {
-  @IsString()
+  @IsCuid()
   categoryId!: string;
 
   @IsString()
@@ -32,6 +33,7 @@ export class CreateSellerProductDto {
   @MinLength(20)
   description!: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   priceCents!: number;
@@ -41,6 +43,7 @@ export class CreateSellerProductDto {
   @Length(3, 3)
   currency?: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   stockQuantity!: number;

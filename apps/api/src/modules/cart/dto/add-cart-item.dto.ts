@@ -1,8 +1,9 @@
 import { Type } from "class-transformer";
-import { IsInt, IsString, Max, Min } from "class-validator";
+import { IsInt, Max, Min } from "class-validator";
+import { IsCuid } from "../../../common/validation/cuid";
 
 export class AddCartItemDto {
-  @IsString()
+  @IsCuid()
   productId!: string;
 
   @Type(() => Number)

@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { ParseCuidPipe } from "../../common/validation/cuid";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { AdminProductsService } from "./admin-products.service";
@@ -20,19 +21,19 @@ export class AdminProductsController {
   }
 
   @Get(":id")
-  getOne(@Param("id") id: string) {
+  getOne(@Param("id", ParseCuidPipe) id: string) {
     return this.adminProductsService.getOne(id);
   }
 
   @Patch(":id/approve")
-  approve(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+  approve(@CurrentUser() admin: AuthenticatedUser, @Param("id", ParseCuidPipe) id: string) {
     return this.adminProductsService.approve(id, admin.id);
   }
 
   @Patch(":id/reject")
   reject(
     @CurrentUser() admin: AuthenticatedUser,
-    @Param("id") id: string,
+    @Param("id", ParseCuidPipe) id: string,
     @Body() dto: RejectProductDto
   ) {
     return this.adminProductsService.reject(id, admin.id, dto.reason);
