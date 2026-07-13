@@ -272,7 +272,6 @@ const sellerOrderItemDetailSelect = {
           amountCents: true,
           currency: true,
           provider: true,
-          providerRef: true,
           createdAt: true
         }
       }
@@ -315,7 +314,6 @@ type SellerOrderItemDetailRecord = SellerOrderItemListRecord & {
     shippingAddress: unknown;
     buyer: SellerOrderItemListRecord["order"]["buyer"] & { phone: string | null };
     payment: (NonNullable<SellerOrderItemListRecord["order"]["payment"]> & {
-      providerRef: string;
       createdAt: Date;
     }) | null;
   };

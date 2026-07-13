@@ -124,7 +124,6 @@ const orderDetailSelect = {
     select: {
       id: true,
       provider: true,
-      providerRef: true,
       amountCents: true,
       currency: true,
       status: true,
@@ -183,7 +182,6 @@ type OrderDetailRecord = OrderListRecord & {
   payment: {
     id: string;
     provider: string;
-    providerRef: string;
     amountCents: number;
     currency: string;
     status: string;
