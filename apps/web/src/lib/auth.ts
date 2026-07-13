@@ -12,7 +12,7 @@ export type AuthUser = {
 export type AuthSession = {
   user: AuthUser;
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 };
 
 export type RegisterInput = {
@@ -41,17 +41,23 @@ export function login(input: LoginInput) {
   });
 }
 
-export function refreshSession(refreshToken: string) {
+export function refreshSession() {
   return apiRequest<AuthSession>("/auth/refresh", {
     method: "POST",
-    body: JSON.stringify({ refreshToken })
+    body: JSON.stringify({})
   });
 }
 
-export function logout(refreshToken: string) {
+export function logout() {
   return apiRequest<{ loggedOut: boolean }>("/auth/logout", {
     method: "POST",
-    body: JSON.stringify({ refreshToken })
+    body: JSON.stringify({})
+  });
+}
+
+export function logoutAll() {
+  return apiRequest<{ loggedOut: boolean }>("/auth/logout-all", {
+    method: "POST"
   });
 }
 

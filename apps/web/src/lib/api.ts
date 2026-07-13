@@ -26,6 +26,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   }
 
   const response = await fetch(`${API_URL}${path}`, {
+    credentials: options.credentials ?? "include",
     cache: options.cache ?? "no-store",
     next: options.next ?? { revalidate: 0 },
     ...options,

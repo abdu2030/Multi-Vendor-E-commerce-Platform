@@ -268,6 +268,12 @@ export class AuthService {
     return { loggedOut: true };
   }
 
+  async logoutAll(userId: string) {
+    await this.revokeUserRefreshTokens(userId);
+
+    return { loggedOut: true };
+  }
+
   private async createSession(user: User, options: CreateSessionOptions = {}) {
     const publicUser = this.toPublicUser(user);
     const sessionId = options.refreshTokenId ?? randomUUID();

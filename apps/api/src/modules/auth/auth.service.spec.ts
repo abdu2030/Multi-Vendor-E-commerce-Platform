@@ -396,6 +396,114 @@ describe("AuthService", () => {
     });
     expect(prisma.refreshToken.create).not.toHaveBeenCalled();
   });
+  it("stores only a SHA-256 hash of the raw refresh token", async () => {
+    const user = buildUser();
+    const { service, prisma } = createService();
+
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue(user);
+
+    const result = await service.register({
+      fullName: "Buyer One",
+      email: "buyer@example.com",
+      password: "StrongPass123"
+    });
+    const tokenData = prisma.refreshToken.create.mock.calls[0][0].data;
+
+    expect(tokenData.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(tokenData.tokenHash).not.toBe(result.refreshToken);
+    expect(JSON.stringify(tokenData)).not.toContain(result.refreshToken);
+  });
+
+  it("rejects an expired refresh token and marks it revoked", async () => {
+    const storedRefreshToken = {
+      id: "refresh_1",
+      tokenHash: hashSecretToken("refresh_token", "refresh_secret"),
+      familyId: "family_1",
+      revokedAt: null,
+      replacedByTokenId: null,
+      expiresAt: new Date(Date.now() - 60_000),
+      user: buildUser()
+    };
+    const { service, prisma } = createService();
+
+    prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
+
+    await expect(service.refresh("refresh_token")).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.refreshToken.update).toHaveBeenCalledWith({
+      where: { id: "refresh_1" },
+      data: { revokedAt: expect.any(Date), lastUsedAt: expect.any(Date) }
+    });
+    expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a revoked refresh token and revokes the token family", async () => {
+    const storedRefreshToken = {
+      id: "refresh_1",
+      tokenHash: hashSecretToken("refresh_token", "refresh_secret"),
+      familyId: "family_1",
+      revokedAt: new Date("2026-07-01T10:00:00.000Z"),
+      replacedByTokenId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      user: buildUser()
+    };
+    const { service, prisma } = createService();
+
+    prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
+
+    await expect(service.refresh("refresh_token")).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { familyId: "family_1", revokedAt: null },
+      data: { revokedAt: expect.any(Date) }
+    });
+    expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+  });
+
+  it("does not store the rotated raw refresh token", async () => {
+    const storedRefreshToken = {
+      id: "refresh_1",
+      tokenHash: hashSecretToken("refresh_token", "refresh_secret"),
+      familyId: "family_1",
+      revokedAt: null,
+      replacedByTokenId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      user: buildUser()
+    };
+    const { service, prisma } = createService();
+
+    prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
+    prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.refresh("refresh_token");
+    const tokenData = prisma.refreshToken.create.mock.calls[0][0].data;
+
+    expect(tokenData.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(tokenData.tokenHash).not.toBe(result.refreshToken);
+    expect(JSON.stringify(tokenData)).not.toContain(result.refreshToken);
+  });
+
+  it("invalidates a single refresh session during logout", async () => {
+    const { service, prisma } = createService();
+
+    await expect(service.logout("refresh_token")).resolves.toEqual({ loggedOut: true });
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        tokenHash: hashSecretToken("refresh_token", "refresh_secret"),
+        revokedAt: null
+      },
+      data: { revokedAt: expect.any(Date) }
+    });
+  });
+
+  it("invalidates all active refresh sessions during logout-all", async () => {
+    const { service, prisma } = createService();
+
+    await expect(service.logoutAll("user_1")).resolves.toEqual({ loggedOut: true });
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { userId: "user_1", revokedAt: null },
+      data: { revokedAt: expect.any(Date) }
+    });
+  });
 });
 
 function buildPrisma() {
