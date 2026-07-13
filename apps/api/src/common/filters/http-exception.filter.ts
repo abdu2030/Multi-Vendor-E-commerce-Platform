@@ -15,6 +15,8 @@ type ErrorResponseBody = {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  constructor(private readonly isProduction = false) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
@@ -25,8 +27,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const errorResponse =
-      exception instanceof HttpException ? exception.getResponse() : "Internal server error";
+    const errorResponse = this.shouldSanitize(statusCode)
+      ? "Internal server error"
+      : exception instanceof HttpException
+        ? exception.getResponse()
+        : "Internal server error";
 
     const message =
       typeof errorResponse === "object" && errorResponse !== null && "message" in errorResponse
@@ -50,5 +55,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString()
     });
+  }
+
+  private shouldSanitize(statusCode: number) {
+    return this.isProduction && statusCode >= HttpStatus.INTERNAL_SERVER_ERROR;
   }
 }

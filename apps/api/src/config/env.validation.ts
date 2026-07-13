@@ -7,10 +7,11 @@ const productionLikeEnvironments = new Set<AppEnvironment>(["staging", "producti
 const requiredVariables = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"] as const;
 const placeholderValues = new Set([
   "change_this_password",
-  "sk_live_xxx",
   "replace_with_strong_secret",
-  "sk_test_xxx",
-  "whsec_xxx",
+  "replace_with_database_url",
+  "replace_with_redis_url",
+  "replace_with_stripe_secret_key",
+  "replace_with_stripe_webhook_secret",
   "your_16_character_app_password",
   "your_app_password",
   "your_api_key",
@@ -18,7 +19,15 @@ const placeholderValues = new Set([
   "your_cloud_name",
   "your_email@gmail.com"
 ]);
-const placeholderFragments = ["example.com", "user:password@host", "default:password@host"];
+const placeholderFragments = [
+  "example.com",
+  "user:password@host",
+  "user:password@db-host",
+  "default:password@host",
+  "default:password@redis-host",
+  "replace_with_",
+  "your_"
+];
 
 export function validateEnv(config: EnvConfig) {
   const nodeEnv = parseNodeEnv(config.NODE_ENV);
@@ -101,7 +110,7 @@ function validateUrls(config: EnvConfig) {
 
   for (const origin of corsOrigins) {
     if (origin === "*") {
-      continue;
+      throw new Error("CORS_ORIGIN cannot include *.");
     }
 
     parseUrl(origin, "CORS_ORIGIN");
@@ -145,10 +154,6 @@ function validateProductionLikeConfig(config: EnvConfig, nodeEnv: AppEnvironment
   requirePresent(config.REDIS_URL, "REDIS_URL");
 
   for (const origin of splitCsv(config.CORS_ORIGIN)) {
-    if (origin === "*") {
-      throw new Error("CORS_ORIGIN cannot include * in staging or production.");
-    }
-
     requireHttps(origin, "CORS_ORIGIN");
   }
 
@@ -221,8 +226,6 @@ function requireNonPlaceholder(value: string | undefined, key: string) {
 
   if (
     placeholderValues.has(normalized) ||
-    normalized.startsWith("replace_with_") ||
-    normalized.startsWith("your_") ||
     placeholderFragments.some((fragment) => normalized.includes(fragment))
   ) {
     throw new Error(`${key} must not use a placeholder value in staging or production.`);

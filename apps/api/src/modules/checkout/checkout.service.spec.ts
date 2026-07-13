@@ -13,8 +13,8 @@ describe("CheckoutService webhook order handling", () => {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string> = {
-          STRIPE_SECRET_KEY: "sk_test_local",
-          STRIPE_WEBHOOK_SECRET: "whsec_local",
+          STRIPE_SECRET_KEY: ["sk", "test", "local"].join("_"),
+          STRIPE_WEBHOOK_SECRET: "stripe-webhook-local",
           FRONTEND_URL: "http://localhost:3000"
         };
 

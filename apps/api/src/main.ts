@@ -10,19 +10,20 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { createRateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { createRequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
 import { createValidationException } from "./common/validation/validation-errors";
-
-type CorsCallback = (error: Error | null, allow?: boolean) => void;
+import { createCorsOriginHandler, parseCsvList } from "./config/cors.config";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(), {
     bodyParser: false
   });
   const config = app.get(ConfigService);
-  const corsOrigins = parseList(
+  const corsOrigins = parseCsvList(
     config.get<string>("CORS_ORIGIN") ?? "http://localhost:3000,http://127.0.0.1:3000"
   );
+  const express = app.getHttpAdapter().getInstance();
 
-  app.getHttpAdapter().getInstance().set("trust proxy", 1);
+  express.disable("x-powered-by");
+  express.set("trust proxy", 1);
   app.setGlobalPrefix("api");
   app.use(helmet());
   app.use(createRequestLoggingMiddleware());
@@ -30,7 +31,7 @@ async function bootstrap() {
     createRateLimitMiddleware({
       windowMs: config.get<number>("RATE_LIMIT_WINDOW_MS") ?? 60_000,
       max: config.get<number>("RATE_LIMIT_MAX") ?? 120,
-      skipPaths: parseList(
+      skipPaths: parseCsvList(
         config.get<string>("RATE_LIMIT_SKIP_PATHS") ?? "/api/checkout/webhooks/stripe"
       )
     })
@@ -38,14 +39,7 @@ async function bootstrap() {
   app.use(json({ limit: "10mb", verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: "10mb" }));
   app.enableCors({
-    origin: (origin: string | undefined, callback: CorsCallback) => {
-      if (!origin || corsOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("CORS origin is not allowed."), false);
-    },
+    origin: createCorsOriginHandler(corsOrigins),
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
@@ -59,7 +53,7 @@ async function bootstrap() {
       exceptionFactory: createValidationException
     })
   );
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter(config.get<string>("NODE_ENV") === "production"));
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   const port = Number(config.get<string>("PORT") ?? 5000);
@@ -74,11 +68,5 @@ function captureRawBody(req: Request & { rawBody?: Buffer }, _res: Response, buf
   }
 }
 
-function parseList(value: string) {
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
 
 void bootstrap();

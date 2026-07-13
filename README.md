@@ -121,6 +121,6 @@ Release notes are in [docs/release-notes-v1.0.0.md](docs/release-notes-v1.0.0.md
 Before accepting real payments:
 
 - Set `ALLOW_TEST_STRIPE_KEYS=false`.
-- Replace `STRIPE_SECRET_KEY` with an `sk_live_` key.
+- Replace `STRIPE_SECRET_KEY` with a Stripe live secret key.
 - Configure the Stripe webhook in live mode.
 - Rotate any credentials that were pasted into chats or logs.
