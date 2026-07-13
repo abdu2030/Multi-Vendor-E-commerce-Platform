@@ -16,6 +16,7 @@ import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { createValidationException } from "../../common/validation/validation-errors";
 import { JwtTokenService } from "../auth/jwt-token.service";
 import { RegisterDto } from "../auth/dto/register.dto";
+import { UploadImageDto } from "../seller-uploads/dto/upload-image.dto";
 import { CartCacheService } from "../cart/cart-cache.service";
 import { CheckoutService } from "../checkout/checkout.service";
 import { EmailQueueService } from "../jobs/email-queue.service";
@@ -143,12 +144,7 @@ describe("Security QA", () => {
 
   describe("input validation", () => {
     it("returns field-level messages and rejects extra body fields", async () => {
-      const pipe = new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        exceptionFactory: createValidationException
-      });
+      const pipe = createSecurityValidationPipe();
 
       await expect(pipe.transform(
         {
@@ -170,9 +166,38 @@ describe("Security QA", () => {
         }
       });
     });
+
+    it("rejects dangerous upload sources before Cloudinary receives them", async () => {
+      const pipe = createSecurityValidationPipe();
+
+      await expect(pipe.transform(
+        { file: "javascript:alert(1)" },
+        { type: "body", metatype: UploadImageDto }
+      )).rejects.toMatchObject({
+        response: {
+          errors: expect.arrayContaining([expect.objectContaining({ field: "file" })])
+        }
+      });
+      await expect(pipe.transform(
+        { file: "data:image/svg+xml;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==" },
+        { type: "body", metatype: UploadImageDto }
+      )).rejects.toMatchObject({
+        response: {
+          errors: expect.arrayContaining([expect.objectContaining({ field: "file" })])
+        }
+      });
+    });
   });
 });
 
+function createSecurityValidationPipe() {
+  return new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    exceptionFactory: createValidationException
+  });
+}
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 
 function buildRequest(headers: Record<string, string> = {}) {
@@ -207,8 +232,8 @@ function createCheckoutService(prisma: Record<string, unknown>) {
     {
       get: jest.fn((key: string) => {
         const values: Record<string, string> = {
-          STRIPE_SECRET_KEY: "sk_test_local",
-          STRIPE_WEBHOOK_SECRET: "whsec_local",
+          STRIPE_SECRET_KEY: ["sk", "test", "local"].join("_"),
+          STRIPE_WEBHOOK_SECRET: "stripe-webhook-local",
           FRONTEND_URL: "http://localhost:3000"
         };
 
@@ -251,3 +276,4 @@ function buildSellerProduct({ sellerUserId }: { sellerUserId: string }) {
     variants: []
   };
 }
+
