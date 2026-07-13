@@ -1,8 +1,12 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Role } from "@prisma/client";
 import { createHmac, timingSafeEqual } from "crypto";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
+
+type JwtHeader = {
+  alg?: unknown;
+  typ?: unknown;
+};
 
 type AccessTokenPayload = AuthenticatedUser & {
   sub: string;
@@ -60,6 +64,12 @@ export class JwtTokenService {
       throw new UnauthorizedException("Invalid authentication token.");
     }
 
+    const jwtHeader = this.decode<JwtHeader>(header);
+
+    if (jwtHeader.alg !== "HS256" || jwtHeader.typ !== "JWT") {
+      throw new UnauthorizedException("Invalid authentication token.");
+    }
+
     const expectedSignature = createHmac("sha256", secret)
       .update(`${header}.${body}`)
       .digest("base64url");
@@ -71,15 +81,15 @@ export class JwtTokenService {
       throw new UnauthorizedException("Invalid authentication token.");
     }
 
-    let payload: T;
+    const payload = this.decode<T>(body);
 
-    try {
-      payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as T;
-    } catch {
+    const expiresAt = payload.exp;
+
+    if (typeof expiresAt !== "number" || !Number.isInteger(expiresAt)) {
       throw new UnauthorizedException("Invalid authentication token.");
     }
 
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    if (expiresAt < Math.floor(Date.now() / 1000)) {
       throw new UnauthorizedException("Authentication token has expired.");
     }
 
@@ -88,6 +98,14 @@ export class JwtTokenService {
 
   private encode(value: unknown) {
     return Buffer.from(JSON.stringify(value)).toString("base64url");
+  }
+
+  private decode<T>(value: string): T {
+    try {
+      return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as T;
+    } catch {
+      throw new UnauthorizedException("Invalid authentication token.");
+    }
   }
 
   private getSecret() {

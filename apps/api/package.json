@@ -28,6 +28,7 @@
     "@nestjs/platform-express": "11.1.27",
     "@prisma/adapter-pg": "6.19.3",
     "@prisma/client": "6.19.3",
+    "bcryptjs": "^3.0.3",
     "body-parser": "^2.3.0",
     "bullmq": "^5.80.0",
     "class-transformer": "^0.5.1",
