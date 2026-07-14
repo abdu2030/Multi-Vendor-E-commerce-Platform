@@ -93,6 +93,8 @@ export class SellerOrdersService {
       select: {
         id: true,
         orderId: true,
+        productId: true,
+        quantity: true,
         sellerFulfillmentStatus: true,
         trackingNumber: true
       }
@@ -103,13 +105,41 @@ export class SellerOrdersService {
     }
 
     const updatedItem = await this.prisma.$transaction(async (tx) => {
-      await tx.orderItem.update({
-        where: { id: itemId },
-        data: {
-          sellerFulfillmentStatus: dto.status,
-          trackingNumber
+      if (dto.status === OrderStatus.CANCELLED) {
+        const cancellation = await tx.orderItem.updateMany({
+          where: {
+            id: itemId,
+            sellerFulfillmentStatus: { not: OrderStatus.CANCELLED }
+          },
+          data: {
+            sellerFulfillmentStatus: OrderStatus.CANCELLED,
+            trackingNumber: null
+          }
+        });
+
+        if (cancellation.count === 1) {
+          await tx.product.update({
+            where: { id: existingItem.productId },
+            data: { stockQuantity: { increment: existingItem.quantity } }
+          });
+          await tx.inventoryLog.create({
+            data: {
+              productId: existingItem.productId,
+              change: existingItem.quantity,
+              reason: "ORDER_ITEM_CANCELLED",
+              actorUserId: userId
+            }
+          });
         }
-      });
+      } else {
+        await tx.orderItem.update({
+          where: { id: itemId },
+          data: {
+            sellerFulfillmentStatus: dto.status,
+            trackingNumber
+          }
+        });
+      }
 
       const nextOrderStatus = await calculateOrderStatus(tx, existingItem.orderId);
 

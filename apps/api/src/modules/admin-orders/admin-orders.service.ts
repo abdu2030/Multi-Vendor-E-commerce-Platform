@@ -55,7 +55,15 @@ export class AdminOrdersService {
         id: true,
         orderNumber: true,
         buyerId: true,
-        status: true
+        status: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            quantity: true,
+            sellerFulfillmentStatus: true
+          }
+        }
       }
     });
 
@@ -65,17 +73,46 @@ export class AdminOrdersService {
 
     const reason = dto.reason?.trim() || null;
 
-    const [updatedOrder] = await this.prisma.$transaction([
-      this.prisma.order.update({
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      if (nextStatus === OrderStatus.CANCELLED) {
+        for (const item of order.items) {
+          const cancellation = await tx.orderItem.updateMany({
+            where: {
+              id: item.id,
+              sellerFulfillmentStatus: { not: OrderStatus.CANCELLED }
+            },
+            data: { sellerFulfillmentStatus: OrderStatus.CANCELLED }
+          });
+
+          if (cancellation.count === 1) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stockQuantity: { increment: item.quantity } }
+            });
+            await tx.inventoryLog.create({
+              data: {
+                productId: item.productId,
+                change: item.quantity,
+                reason: "ORDER_CANCELLED",
+                actorUserId: adminUserId
+              }
+            });
+          }
+        }
+      } else {
+        await tx.orderItem.updateMany({
+          where: { orderId },
+          data: { sellerFulfillmentStatus: nextStatus }
+        });
+      }
+
+      const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: { status: nextStatus },
         select: adminOrderDetailSelect
-      }),
-      this.prisma.orderItem.updateMany({
-        where: { orderId },
-        data: { sellerFulfillmentStatus: nextStatus }
-      }),
-      this.auditLogs.create({
+      });
+
+      await this.auditLogs.create({
         actorUserId: adminUserId,
         action: "ORDER_STATUS_UPDATED",
         entity: "Order",
@@ -87,8 +124,10 @@ export class AdminOrdersService {
           newStatus: nextStatus,
           reason
         }
-      })
-    ]);
+      }, tx);
+
+      return updatedOrder;
+    });
 
     return formatAdminOrderDetail(updatedOrder);
   }

@@ -102,6 +102,8 @@ describe("SellerOrdersService", () => {
       select: {
         id: true,
         orderId: true,
+        productId: true,
+        quantity: true,
         sellerFulfillmentStatus: true,
         trackingNumber: true
       }
