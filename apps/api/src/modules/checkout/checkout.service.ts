@@ -270,7 +270,7 @@ export class CheckoutService {
         );
       case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed":
-        return this.createOrderFromPaidCheckoutSession(event.data.object as Stripe.Checkout.Session, event.id);
+        return this.createOrderFromVerifiedPaidCheckoutSession(event.data.object as Stripe.Checkout.Session, event.id);
       case "checkout.session.expired":
         return this.updateCheckoutSessionPayment(
           event.data.object as Stripe.Checkout.Session,
@@ -309,6 +309,22 @@ export class CheckoutService {
       sessionId: session.id,
       paymentStatus: status
     };
+  }
+
+  private async createOrderFromVerifiedPaidCheckoutSession(session: Stripe.Checkout.Session, eventId: string) {
+    const verifiedSession = await this.retrievePaidCheckoutSession(session.id);
+
+    return this.createOrderFromPaidCheckoutSession(verifiedSession, eventId);
+  }
+
+  private async retrievePaidCheckoutSession(sessionId: string) {
+    const verifiedSession = await this.stripe!.checkout.sessions.retrieve(sessionId);
+
+    if (verifiedSession.payment_status !== "paid") {
+      throw new ConflictException("Stripe checkout session is not paid.");
+    }
+
+    return verifiedSession;
   }
 
   private async createOrderFromPaidCheckoutSession(session: Stripe.Checkout.Session, eventId: string) {
@@ -469,15 +485,14 @@ export class CheckoutService {
       };
     });
 
-    if (
-      (result.action === "order_created" || result.action === "order_already_created") &&
-      result.emailContext
-    ) {
-      if (result.action === "order_created") {
-        await this.cartCache.invalidate(buyerId);
-      }
-
+    if (result.action === "order_created" && result.emailContext) {
+      await this.cartCache.invalidate(buyerId);
       await this.enqueueOrderEmails(result.emailContext);
+      const { emailContext: _emailContext, ...response } = result;
+      return response;
+    }
+
+    if (result.action === "order_already_created" && result.emailContext) {
       const { emailContext: _emailContext, ...response } = result;
       return response;
     }
