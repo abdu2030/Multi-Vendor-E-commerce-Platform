@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/commo
 import { Queue } from "bullmq";
 import { CREATE_NOTIFICATION_JOB, NOTIFICATIONS_QUEUE } from "./jobs.constants";
 import { CreateNotificationJob } from "./jobs.types";
+import { assertSafeJobPayload } from "./job-payload-safety";
 import { RedisConnectionFactory } from "./redis-connection.factory";
 
 @Injectable()
@@ -26,6 +27,8 @@ export class NotificationQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async enqueue(data: CreateNotificationJob) {
+    assertSafeJobPayload(data);
+
     if (!this.queue) {
       return false;
     }
@@ -49,5 +52,6 @@ export const NOTIFICATION_QUEUE_DEFAULT_JOB_OPTIONS = {
   attempts: 3,
   backoff: { type: "exponential", delay: 2_000 },
   removeOnComplete: { count: 1_000 },
-  removeOnFail: { count: 5_000 }
+  removeOnFail: { count: 5_000 },
+  timeout: 15_000
 } as const;

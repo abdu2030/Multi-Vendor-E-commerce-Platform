@@ -15,7 +15,7 @@ const productionConfig = {
   NODE_ENV: "production",
   FRONTEND_URL: "https://market.internal",
   CORS_ORIGIN: "https://market.internal",
-  REDIS_URL: "rediss://redis.market.internal:6379",
+  REDIS_URL: "rediss://:redis-password@redis.market.internal:6379",
   STRIPE_SECRET_KEY: liveStripeFixture,
   STRIPE_WEBHOOK_SECRET: "stripe-webhook-fixture",
   GMAIL_USER: "sender@market.internal",
@@ -72,6 +72,29 @@ describe("validateEnv", () => {
 
     expect(validated.NODE_ENV).toBe("production");
     expect(validated.GMAIL_SMTP_PORT).toBe(465);
+  });
+
+  it("rejects production Redis without TLS, authentication, or a non-loopback host", () => {
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        REDIS_URL: "redis://:redis-password@redis.market.internal:6379"
+      })
+    ).toThrow("REDIS_URL must use rediss:// in staging and production");
+
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        REDIS_URL: "rediss://redis.market.internal:6379"
+      })
+    ).toThrow("REDIS_URL must include a Redis password in staging and production");
+
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        REDIS_URL: "rediss://:redis-password@127.0.0.1:6379"
+      })
+    ).toThrow("REDIS_URL must not point to a loopback or listen-all host in staging and production");
   });
 
   it("allows production test Stripe keys only when explicitly enabled", () => {

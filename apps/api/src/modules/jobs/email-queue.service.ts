@@ -3,6 +3,7 @@ import { Queue } from "bullmq";
 import { MailService } from "../mail/mail.service";
 import { QueuedEmailJob } from "../mail/mail.types";
 import { EMAILS_QUEUE, SEND_EMAIL_JOB } from "./jobs.constants";
+import { assertSafeJobPayload } from "./job-payload-safety";
 import { RedisConnectionFactory } from "./redis-connection.factory";
 
 @Injectable()
@@ -30,6 +31,8 @@ export class EmailQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async enqueue(jobId: string, data: QueuedEmailJob) {
+    assertSafeJobPayload(data);
+
     if (this.queue) {
       try {
         await this.queue.add(SEND_EMAIL_JOB, data, { jobId });
@@ -52,5 +55,6 @@ export const EMAIL_QUEUE_DEFAULT_JOB_OPTIONS = {
   attempts: 5,
   backoff: { type: "exponential", delay: 3_000 },
   removeOnComplete: { count: 2_000 },
-  removeOnFail: { count: 5_000 }
+  removeOnFail: { count: 5_000 },
+  timeout: 30_000
 } as const;

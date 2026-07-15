@@ -122,12 +122,32 @@ function validateUrls(config: EnvConfig) {
 }
 
 function validateRedis(config: EnvConfig, nodeEnv: AppEnvironment) {
-  if (config.REDIS_URL && !/^rediss?:\/\//i.test(config.REDIS_URL)) {
+  if (!config.REDIS_URL) {
+    return;
+  }
+
+  if (!/^rediss?:\/\//i.test(config.REDIS_URL)) {
     throw new Error("REDIS_URL must use the redis:// or rediss:// protocol.");
   }
 
-  if (productionLikeEnvironments.has(nodeEnv) && config.REDIS_URL && !config.REDIS_URL.startsWith("rediss://")) {
+  const redisUrl = parseUrl(config.REDIS_URL, "REDIS_URL");
+
+  if (!productionLikeEnvironments.has(nodeEnv)) {
+    return;
+  }
+
+  if (redisUrl.protocol !== "rediss:") {
     throw new Error("REDIS_URL must use rediss:// in staging and production.");
+  }
+
+  if (!redisUrl.password) {
+    throw new Error("REDIS_URL must include a Redis password in staging and production.");
+  }
+
+  const hostname = redisUrl.hostname.toLowerCase().replace(/\.$/, "");
+
+  if (["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"].includes(hostname)) {
+    throw new Error("REDIS_URL must not point to a loopback or listen-all host in staging and production.");
   }
 }
 
