@@ -1,11 +1,19 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { isIP } from "net";
 
-const allowedDataImagePattern = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=\s]+$/i;
+const dataImagePattern = /^data:(image\/(?:png|jpe?g|webp|gif));base64,([a-z0-9+/=\s]+)$/i;
+const maxImageUploadBytes = 5 * 1024 * 1024;
 const allowedRemoteImageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const allowedImageMediaTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const blockedHostnames = new Set(["localhost", "metadata.google.internal"]);
+const extensionByMediaType: Record<string, string> = {
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp"
+};
 
 type CloudinaryUploadResponse = {
   public_id: string;
@@ -27,6 +35,11 @@ export type UploadedImage = {
   height?: number;
 };
 
+type ValidatedImageSource = {
+  file: Blob;
+  filename: string;
+};
+
 @Injectable()
 export class CloudinaryService {
   constructor(private readonly config: ConfigService) {}
@@ -35,19 +48,21 @@ export class CloudinaryService {
     const cloudName = this.requiredConfig("CLOUDINARY_CLOUD_NAME");
     const apiKey = this.requiredConfig("CLOUDINARY_API_KEY");
     const apiSecret = this.requiredConfig("CLOUDINARY_API_SECRET");
-    const imageSource = normalizeImageSource(file);
+    const imageSource = await normalizeImageSource(file);
     const rootFolder =
       this.config.get<string>("CLOUDINARY_UPLOAD_FOLDER")?.trim() ||
       "multi-vendor-ecommerce";
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const uploadFolder = [rootFolder, sanitizeFolder(folder)].filter(Boolean).join("/");
-    const signature = this.sign({ folder: uploadFolder, timestamp }, apiSecret);
+    const publicId = randomUUID();
+    const signature = this.sign({ folder: uploadFolder, public_id: publicId, timestamp }, apiSecret);
     const body = new FormData();
 
-    body.append("file", imageSource);
+    body.append("file", imageSource.file, imageSource.filename);
     body.append("api_key", apiKey);
     body.append("timestamp", timestamp);
     body.append("folder", uploadFolder);
+    body.append("public_id", publicId);
     body.append("signature", signature);
 
     const response = await fetch(
@@ -103,11 +118,15 @@ export class CloudinaryService {
   }
 }
 
-function normalizeImageSource(value: string) {
+async function normalizeImageSource(value: string): Promise<ValidatedImageSource> {
   const source = value.trim();
+  const dataImageMatch = source.match(dataImagePattern);
 
-  if (allowedDataImagePattern.test(source)) {
-    return source;
+  if (dataImageMatch) {
+    const mediaType = normalizeMediaType(dataImageMatch[1]);
+    const bytes = Buffer.from(dataImageMatch[2].replace(/\s+/g, ""), "base64");
+
+    return buildValidatedImageSource(bytes, mediaType);
   }
 
   let url: URL;
@@ -138,7 +157,102 @@ function normalizeImageSource(value: string) {
     throw new BadRequestException("Remote image URL must end in png, jpg, jpeg, webp, or gif.");
   }
 
-  return url.toString();
+  let response: Response;
+
+  try {
+    response = await fetch(url.toString(), { redirect: "error" });
+  } catch {
+    throw new BadRequestException("Remote image could not be fetched.");
+  }
+
+  if (!response.ok) {
+    throw new BadRequestException("Remote image could not be fetched.");
+  }
+
+  const mediaType = normalizeMediaType(
+    response.headers.get("content-type")?.split(";")[0].trim() ?? ""
+  );
+
+  if (!mediaType || !allowedImageMediaTypes.has(mediaType)) {
+    throw new BadRequestException("Remote image content type is not allowed.");
+  }
+
+  const contentLength = Number(response.headers.get("content-length"));
+
+  if (Number.isFinite(contentLength) && contentLength > maxImageUploadBytes) {
+    throw new BadRequestException("Image upload exceeds the maximum size.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+
+  return buildValidatedImageSource(bytes, mediaType);
+}
+
+function buildValidatedImageSource(bytes: Buffer, mediaType: string): ValidatedImageSource {
+  if (!allowedImageMediaTypes.has(mediaType)) {
+    throw new BadRequestException("Image upload type is not allowed.");
+  }
+
+  if (bytes.length === 0) {
+    throw new BadRequestException("Image upload cannot be empty.");
+  }
+
+  if (bytes.length > maxImageUploadBytes) {
+    throw new BadRequestException("Image upload exceeds the maximum size.");
+  }
+
+  if (hasDangerousFileSignature(bytes)) {
+    throw new BadRequestException("Executable, SVG, and HTML uploads are not allowed.");
+  }
+
+  if (!hasExpectedImageSignature(bytes, mediaType)) {
+    throw new BadRequestException("Image upload content does not match the declared image type.");
+  }
+
+  const blobBytes = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+
+  return {
+    file: new Blob([blobBytes], { type: mediaType }),
+    filename: `upload.${extensionByMediaType[mediaType]}`
+  };
+}
+
+function normalizeMediaType(value: string) {
+  const mediaType = value.toLowerCase();
+
+  return mediaType === "image/jpg" ? "image/jpeg" : mediaType;
+}
+
+function hasExpectedImageSignature(bytes: Buffer, mediaType: string) {
+  switch (mediaType) {
+    case "image/png":
+      return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    case "image/jpeg":
+      return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    case "image/gif":
+      return bytes.subarray(0, 6).toString("ascii") === "GIF87a" ||
+        bytes.subarray(0, 6).toString("ascii") === "GIF89a";
+    case "image/webp":
+      return bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+        bytes.subarray(8, 12).toString("ascii") === "WEBP";
+    default:
+      return false;
+  }
+}
+
+function hasDangerousFileSignature(bytes: Buffer) {
+  const prefix = bytes.subarray(0, 256).toString("utf8").trimStart().toLowerCase();
+
+  return (
+    bytes.subarray(0, 2).equals(Buffer.from("MZ")) ||
+    bytes.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46])) ||
+    prefix.startsWith("<!doctype html") ||
+    prefix.startsWith("<html") ||
+    prefix.startsWith("<script") ||
+    prefix.startsWith("<svg") ||
+    prefix.startsWith("<?xml") ||
+    prefix.startsWith("<?php")
+  );
 }
 
 function isBlockedHostname(hostname: string) {

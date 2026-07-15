@@ -15,8 +15,6 @@ type FormState = {
   description: string;
   phone: string;
   bio: string;
-  logoUrl: string;
-  bannerUrl: string;
 };
 
 const emptyForm: FormState = {
@@ -24,8 +22,6 @@ const emptyForm: FormState = {
   description: "",
   phone: "",
   bio: "",
-  logoUrl: "",
-  bannerUrl: "",
 };
 
 export function StoreSettingsForm() {
@@ -50,8 +46,6 @@ export function StoreSettingsForm() {
           description: data.store.description,
           phone: data.sellerProfile.phone ?? "",
           bio: data.sellerProfile.bio ?? "",
-          logoUrl: data.store.logoUrl ?? "",
-          bannerUrl: data.store.bannerUrl ?? "",
         });
       })
       .catch((caughtError) => {
@@ -90,8 +84,6 @@ export function StoreSettingsForm() {
       description: form.description.trim(),
       phone: form.phone.trim() || undefined,
       bio: form.bio.trim() || undefined,
-      logoUrl: form.logoUrl.trim() || undefined,
-      bannerUrl: form.bannerUrl.trim() || undefined,
     };
 
     setIsSubmitting(true);
@@ -166,25 +158,6 @@ export function StoreSettingsForm() {
         />
       </Field>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Logo URL">
-          <input
-            className={inputClass}
-            onChange={(event) => updateField("logoUrl", event.target.value)}
-            type="url"
-            value={form.logoUrl}
-          />
-        </Field>
-        <Field label="Banner URL">
-          <input
-            className={inputClass}
-            onChange={(event) => updateField("bannerUrl", event.target.value)}
-            type="url"
-            value={form.bannerUrl}
-          />
-        </Field>
-      </div>
-
       {error ? (
         <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {error}
@@ -232,25 +205,6 @@ function validateStoreSettings(form: FormState) {
 
   if (form.phone.trim() && form.phone.trim().length < 7) {
     return "Seller phone must be at least 7 characters.";
-  }
-
-  for (const [label, value] of [
-    ["Logo URL", form.logoUrl],
-    ["Banner URL", form.bannerUrl],
-  ] as const) {
-    if (!value.trim()) {
-      continue;
-    }
-
-    try {
-      const url = new URL(value.trim());
-
-      if (!["http:", "https:"].includes(url.protocol)) {
-        return `${label} must start with http or https.`;
-      }
-    } catch {
-      return `${label} must be a valid URL.`;
-    }
   }
 
   return "";

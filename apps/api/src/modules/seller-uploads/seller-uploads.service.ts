@@ -1,17 +1,28 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { SellerStatus } from "@prisma/client";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UploadImageDto } from "./dto/upload-image.dto";
 
+const uploadRateLimitWindowMs = 60_000;
+const maxUploadsPerWindow = 20;
+
+type UploadRateBucket = {
+  count: number;
+  resetAt: number;
+};
+
 @Injectable()
 export class SellerUploadsService {
+  private readonly uploadRateBuckets = new Map<string, UploadRateBucket>();
+
   constructor(
     private readonly cloudinary: CloudinaryService,
     private readonly prisma: PrismaService
   ) {}
 
   async uploadStoreLogo(userId: string, dto: UploadImageDto) {
+    this.assertUploadRateLimit(userId);
     const store = await this.findApprovedStore(userId);
     const uploaded = await this.cloudinary.uploadImage(dto.file, `stores/${store.id}/logo`);
     const updatedStore = await this.prisma.store.update({
@@ -40,6 +51,7 @@ export class SellerUploadsService {
   }
 
   async uploadStoreBanner(userId: string, dto: UploadImageDto) {
+    this.assertUploadRateLimit(userId);
     const store = await this.findApprovedStore(userId);
     const uploaded = await this.cloudinary.uploadImage(dto.file, `stores/${store.id}/banner`);
     const updatedStore = await this.prisma.store.update({
@@ -68,6 +80,7 @@ export class SellerUploadsService {
   }
 
   async uploadProductImage(userId: string, productId: string, dto: UploadImageDto) {
+    this.assertUploadRateLimit(userId);
     const product = await this.findOwnedProduct(userId, productId);
     const uploaded = await this.cloudinary.uploadImage(
       dto.file,
@@ -103,6 +116,25 @@ export class SellerUploadsService {
       upload: uploaded,
       image
     };
+  }
+
+  private assertUploadRateLimit(userId: string) {
+    const now = Date.now();
+    const bucket = this.uploadRateBuckets.get(userId);
+
+    if (!bucket || bucket.resetAt <= now) {
+      this.uploadRateBuckets.set(userId, {
+        count: 1,
+        resetAt: now + uploadRateLimitWindowMs
+      });
+      return;
+    }
+
+    if (bucket.count >= maxUploadsPerWindow) {
+      throw new HttpException("Too many uploads. Please wait before uploading more files.", HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    bucket.count += 1;
   }
 
   private async findApprovedStore(userId: string) {

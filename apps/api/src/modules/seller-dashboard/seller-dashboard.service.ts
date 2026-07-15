@@ -68,8 +68,6 @@ export class SellerDashboardService {
     const storeUpdates = {
       name: dto.name?.trim(),
       description: dto.description?.trim(),
-      logoUrl: this.normalizeOptionalUrl(dto.logoUrl),
-      bannerUrl: this.normalizeOptionalUrl(dto.bannerUrl),
     };
     const sellerProfileChanges = buildChanges(
       {
@@ -82,8 +80,6 @@ export class SellerDashboardService {
       {
         name: store.name,
         description: store.description,
-        logoUrl: store.logoUrl,
-        bannerUrl: store.bannerUrl,
       },
       storeUpdates,
     );
@@ -131,13 +127,6 @@ export class SellerDashboardService {
     return this.getStoreSettings(userId);
   }
 
-  private normalizeOptionalUrl(value?: string) {
-    if (typeof value === "undefined") {
-      return undefined;
-    }
-
-    return value.trim() || null;
-  }
 
   private async findSellerProfile(userId: string) {
     const sellerProfile = await this.prisma.sellerProfile.findUnique({

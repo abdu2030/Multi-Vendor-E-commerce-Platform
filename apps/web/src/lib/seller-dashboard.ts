@@ -42,8 +42,6 @@ export type StoreSettingsInput = {
   description?: string;
   phone?: string;
   bio?: string;
-  logoUrl?: string;
-  bannerUrl?: string;
 };
 
 export function getSellerDashboard(accessToken: string) {

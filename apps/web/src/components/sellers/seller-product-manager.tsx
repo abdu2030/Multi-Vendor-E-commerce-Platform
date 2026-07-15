@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -40,6 +40,9 @@ const emptyForm: ProductFormState = {
   tags: "",
   status: "DRAFT",
 };
+
+const allowedImageTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const maxImageFileBytes = 5 * 1024 * 1024;
 
 export function SellerProductManager() {
   const { accessToken } = useAuth();
@@ -150,6 +153,21 @@ export function SellerProductManager() {
       ...emptyForm,
       categoryId: categories[0]?.id || "",
     });
+  }
+  function handleImageSelection(files: FileList | null) {
+    const selectedFiles = Array.from(files ?? []);
+    const invalidFile = selectedFiles.find(
+      (file) => !allowedImageTypes.has(file.type) || file.size > maxImageFileBytes,
+    );
+
+    if (invalidFile) {
+      setImageFiles([]);
+      setError("Product images must be PNG, JPG, WEBP, or GIF files up to 5 MB.");
+      return;
+    }
+
+    setError("");
+    setImageFiles(selectedFiles);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -447,10 +465,10 @@ export function SellerProductManager() {
 
           <Field label="Product images">
             <input
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp,image/gif"
               className="block w-full rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-4 py-4 text-sm text-stone-500 file:mr-4 file:rounded-xl file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-sm file:font-extrabold file:text-white"
               multiple
-              onChange={(event) => setImageFiles(Array.from(event.target.files ?? []))}
+              onChange={(event) => handleImageSelection(event.target.files)}
               type="file"
             />
           </Field>

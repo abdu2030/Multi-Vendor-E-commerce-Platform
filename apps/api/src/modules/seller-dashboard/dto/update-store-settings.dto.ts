@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, MinLength } from "class-validator";
+import { IsOptional, IsString, MinLength } from "class-validator";
 
 export class UpdateStoreSettingsDto {
   @IsOptional()
@@ -20,12 +20,4 @@ export class UpdateStoreSettingsDto {
   @IsString()
   @MinLength(10)
   bio?: string;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
-  logoUrl?: string;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
-  bannerUrl?: string;
 }

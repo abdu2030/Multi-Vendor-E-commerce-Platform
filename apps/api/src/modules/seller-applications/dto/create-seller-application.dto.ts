@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, MinLength } from "class-validator";
+import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from "class-validator";
 
 export class CreateSellerApplicationDto {
   @IsString()
@@ -18,6 +18,7 @@ export class CreateSellerApplicationDto {
   address!: string;
 
   @IsOptional()
-  @IsUrl({ require_protocol: true, protocols: ["http", "https"] })
+  @IsUrl({ require_protocol: true, protocols: ["https"] })
+  @MaxLength(2_048)
   businessDocument?: string;
 }
