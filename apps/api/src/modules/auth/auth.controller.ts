@@ -9,8 +9,10 @@ import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { RequestEmailVerificationDto } from "./dto/request-email-verification.dto";
 import { RequestPasswordResetDto } from "./dto/request-password-reset.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { VerifyEmailDto } from "./dto/verify-email.dto";
 
 const REFRESH_TOKEN_COOKIE_NAME = "marketo_refresh_token";
 
@@ -47,6 +49,15 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
+  @Post("email-verification/request")
+  requestEmailVerification(@Body() dto: RequestEmailVerificationDto) {
+    return this.authService.requestEmailVerification(dto.email);
+  }
+
+  @Post("email-verification/confirm")
+  verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto);
+  }
   @Post("password/change")
   @UseGuards(JwtAuthGuard)
   changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto) {

@@ -15,6 +15,16 @@ export type QueuedEmailJob = EmailRecipient & (
       message: string;
     }
   | {
+      kind: "password-reset";
+      actionUrl: string;
+      expiresInMinutes: number;
+    }
+  | {
+      kind: "email-verification";
+      actionUrl: string;
+      expiresInHours: number;
+    }
+  | {
       kind: "seller-decision";
       applicationId: string;
       storeName: string;

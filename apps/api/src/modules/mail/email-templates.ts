@@ -16,6 +16,18 @@ type NotificationEmailInput = {
   dashboardUrl: string;
 };
 
+type PasswordResetEmailInput = {
+  recipientName: string;
+  resetUrl: string;
+  expiresInMinutes: number;
+};
+
+type EmailVerificationEmailInput = {
+  recipientName: string;
+  verificationUrl: string;
+  expiresInHours: number;
+};
+
 type SellerDecisionEmailInput = {
   recipientName: string;
   storeName: string;
@@ -107,6 +119,53 @@ export function renderNotificationEmail(input: NotificationEmailInput): EmailTem
   };
 }
 
+
+export function renderPasswordResetEmail(input: PasswordResetEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const subject = "Reset your Marketo password";
+  const body = [
+    `Use this link to reset your password. It expires in ${input.expiresInMinutes} minutes.`,
+    "If you did not request a password reset, you can ignore this email."
+  ];
+
+  return {
+    subject,
+    text: buildText(name, subject, body, "Reset password", input.resetUrl),
+    html: emailLayout({
+      preheader: `Your password reset link expires in ${input.expiresInMinutes} minutes.`,
+      eyebrow: "Password reset",
+      heading: "Reset your password",
+      greeting: `Hi ${name},`,
+      body,
+      actionLabel: "Reset password",
+      actionUrl: input.resetUrl
+    })
+  };
+}
+
+export function renderEmailVerificationEmail(input: EmailVerificationEmailInput): EmailTemplate {
+  const name = input.recipientName.trim() || "there";
+  const subject = "Verify your Marketo email";
+  const body = [
+    `Use this link to verify your email address. It expires in ${input.expiresInHours} hours.`,
+    "If you did not create a Marketo account, you can ignore this email."
+  ];
+
+  return {
+    subject,
+    text: buildText(name, subject, body, "Verify email", input.verificationUrl),
+    html: emailLayout({
+      preheader: `Your email verification link expires in ${input.expiresInHours} hours.`,
+      eyebrow: "Email verification",
+      heading: "Verify your email",
+      greeting: `Hi ${name},`,
+      body,
+      actionLabel: "Verify email",
+      actionUrl: input.verificationUrl
+    })
+  };
+}
+
 export function renderSellerDecisionEmail(input: SellerDecisionEmailInput): EmailTemplate {
   const name = input.recipientName.trim() || "there";
   const decisionCopy = {
@@ -155,7 +214,7 @@ export function renderOrderConfirmationEmail(input: OrderEmailInput): EmailTempl
   const subject = `Order ${input.orderNumber} confirmed`;
   const body = [
     "Your payment was successful and your order is now being prepared.",
-    `${formatItemCount(input.itemCount)} · ${formatMoney(input.totalCents, input.currency)}`
+    `${formatItemCount(input.itemCount)} Ã‚Â· ${formatMoney(input.totalCents, input.currency)}`
   ];
 
   return {
@@ -177,7 +236,7 @@ export function renderSellerNewOrderEmail(input: SellerNewOrderEmailInput): Emai
   const subject = `New order ${input.orderNumber} for ${input.storeName}`;
   const body = [
     "A customer has paid for items from your store. Review the order and begin fulfillment.",
-    `${formatItemCount(input.itemCount)} · ${formatMoney(input.totalCents, input.currency)}`
+    `${formatItemCount(input.itemCount)} Ã‚Â· ${formatMoney(input.totalCents, input.currency)}`
   ];
 
   return {
@@ -298,7 +357,7 @@ function emailLayout(input: {
                 <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:26px;">
                   <tr>
                     <td style="border-radius:10px;background:#059669;">
-                      <a href="${escapeHtml(input.actionUrl)}" style="display:inline-block;padding:13px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">${escapeHtml(input.actionLabel)}</a>
+                      <a href="${escapeHtml(normalizeActionUrl(input.actionUrl))}" style="display:inline-block;padding:13px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">${escapeHtml(input.actionLabel)}</a>
                     </td>
                   </tr>
                 </table>
@@ -313,6 +372,20 @@ function emailLayout(input: {
     </table>
   </body>
 </html>`;
+}
+
+function normalizeActionUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    if (!["https:", "http:"].includes(url.protocol)) {
+      return "#";
+    }
+
+    return url.toString();
+  } catch {
+    return "#";
+  }
 }
 
 function escapeHtml(value: string) {

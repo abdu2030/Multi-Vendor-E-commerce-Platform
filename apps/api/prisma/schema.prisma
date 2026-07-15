@@ -92,6 +92,8 @@ model User {
   role                Role                @default(BUYER)
   phone               String?
   emailVerifiedAt     DateTime?
+  emailVerificationTokenHash      String?
+  emailVerificationTokenExpiresAt DateTime?
   refreshTokenHash    String?
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
@@ -111,6 +113,7 @@ model User {
   emailJobDeliveries  EmailJobDelivery[]
 
   @@index([role])
+  @@index([emailVerificationTokenHash])
   @@map("users")
 }
 

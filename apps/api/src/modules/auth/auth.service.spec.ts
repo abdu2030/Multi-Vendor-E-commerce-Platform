@@ -2,6 +2,7 @@ import { ConflictException, HttpException, HttpStatus, UnauthorizedException } f
 import { ConfigService } from "@nestjs/config";
 import { Role } from "@prisma/client";
 import { createHash } from "crypto";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthService } from "./auth.service";
@@ -19,6 +20,8 @@ describe("AuthService", () => {
     notifications?: Partial<NotificationsService>;
     config?: Partial<ConfigService>;
     loginRateLimit?: Partial<LoginRateLimitService>;
+    emailQueue?: Partial<EmailQueueService>;
+    emailActionRateLimit?: { assertCanSend?: jest.Mock };
   } = {}) {
     const config = {
       get: jest.fn((key: string) => {
@@ -26,7 +29,9 @@ describe("AuthService", () => {
           NODE_ENV: "test",
           JWT_REFRESH_SECRET: "refresh_secret",
           JWT_REFRESH_TOKEN_TTL_DAYS: 30,
-          PASSWORD_RESET_TOKEN_TTL_MINUTES: 30
+          PASSWORD_RESET_TOKEN_TTL_MINUTES: 30,
+          EMAIL_VERIFICATION_TOKEN_TTL_HOURS: 24,
+          FRONTEND_URL: "https://marketo.example"
         };
 
         return values[key];
@@ -57,6 +62,14 @@ describe("AuthService", () => {
       clear: jest.fn(),
       ...overrides.loginRateLimit
     } as unknown as LoginRateLimitService;
+    const emailQueue = {
+      enqueue: jest.fn().mockResolvedValue(true),
+      ...overrides.emailQueue
+    } as unknown as EmailQueueService;
+    const emailActionRateLimit = {
+      assertCanSend: jest.fn(),
+      ...overrides.emailActionRateLimit
+    };
 
     return {
       config,
@@ -65,20 +78,24 @@ describe("AuthService", () => {
       prisma,
       notifications,
       loginRateLimit,
+      emailQueue,
+      emailActionRateLimit,
       service: new AuthService(
         config,
         jwt,
         password,
         prisma as unknown as PrismaService,
         notifications,
-        loginRateLimit
+        loginRateLimit,
+        emailQueue,
+        emailActionRateLimit as never
       )
     };
   }
 
   it("registers a normalized buyer, stores only the password hash, and queues a welcome notification", async () => {
     const user = buildUser({ email: "buyer@example.com", fullName: "Buyer One" });
-    const { service, prisma, password, jwt, notifications } = createService();
+    const { service, prisma, password, jwt, notifications, emailQueue } = createService();
 
     prisma.user.findUnique.mockResolvedValue(null);
     prisma.user.create.mockResolvedValue(user);
@@ -98,7 +115,9 @@ describe("AuthService", () => {
         email: "buyer@example.com",
         phone: "+251900000000",
         role: Role.BUYER,
-        passwordHash: "hashed_password"
+        passwordHash: "hashed_password",
+        emailVerificationTokenHash: expect.any(String),
+        emailVerificationTokenExpiresAt: expect.any(Date)
       }
     });
     expect(JSON.stringify(prisma.user.create.mock.calls[0][0])).not.toContain("StrongPass123");
@@ -119,6 +138,12 @@ describe("AuthService", () => {
         expiresAt: expect.any(Date)
       })
     });
+    expect(emailQueue.enqueue).toHaveBeenCalledWith(`email-verification-${user.id}`, expect.objectContaining({
+      kind: "email-verification",
+      to: "buyer@example.com",
+      actionUrl: expect.stringContaining("/verify-email?token="),
+      expiresInHours: 24
+    }));
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({
       userId: user.id,
       idempotencyKey: `user-welcome-${user.id}`,
@@ -214,7 +239,7 @@ describe("AuthService", () => {
   });
 
   it("creates password reset tokens without enumerating unknown accounts", async () => {
-    const { service, prisma } = createService();
+    const { service, prisma, emailQueue, emailActionRateLimit } = createService();
 
     prisma.user.findUnique.mockResolvedValueOnce(null);
     await expect(service.requestPasswordReset("missing@example.com")).resolves.toEqual({ accepted: true });
@@ -231,6 +256,104 @@ describe("AuthService", () => {
         resetTokenExpiresAt: expect.any(Date)
       }
     });
+    expect(emailQueue.enqueue).toHaveBeenCalledWith(expect.stringMatching(/^password-reset-user_1-/), expect.objectContaining({
+      kind: "password-reset",
+      to: "buyer@example.com",
+      actionUrl: expect.stringContaining("/password-reset?token="),
+      expiresInMinutes: 30
+    }));
+    expect(emailActionRateLimit.assertCanSend).toHaveBeenCalledWith("password-reset", "buyer@example.com");
+  });
+
+
+  it("rate-limits repeated password reset requests before account lookup", async () => {
+    const { service, prisma, emailActionRateLimit } = createService({
+      emailActionRateLimit: {
+        assertCanSend: jest.fn(() => {
+          throw new HttpException("Too many email requests. Try again later.", HttpStatus.TOO_MANY_REQUESTS);
+        })
+      }
+    });
+
+    await expect(service.requestPasswordReset("buyer@example.com")).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+    expect(emailActionRateLimit.assertCanSend).toHaveBeenCalledWith("password-reset", "buyer@example.com");
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("queues short-lived email verification links without enumerating unknown accounts", async () => {
+    const { service, prisma, emailQueue, emailActionRateLimit } = createService();
+
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    await expect(service.requestEmailVerification("missing@example.com")).resolves.toEqual({ accepted: true });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+
+    prisma.user.findUnique.mockResolvedValueOnce(buildUser());
+    const result = await service.requestEmailVerification("BUYER@EXAMPLE.COM");
+
+    expect(result).toEqual({ accepted: true, verificationToken: expect.any(String) });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: {
+        emailVerificationTokenHash: expect.any(String),
+        emailVerificationTokenExpiresAt: expect.any(Date)
+      }
+    });
+    expect(emailQueue.enqueue).toHaveBeenCalledWith(`email-verification-user_1`, expect.objectContaining({
+      kind: "email-verification",
+      to: "buyer@example.com",
+      actionUrl: expect.stringContaining("/verify-email?token="),
+      expiresInHours: 24
+    }));
+    expect(emailActionRateLimit.assertCanSend).toHaveBeenCalledWith("email-verification", "buyer@example.com");
+  });
+
+  it("rejects expired email verification links", async () => {
+    const { service, prisma } = createService();
+
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_1",
+      emailVerificationTokenExpiresAt: new Date(Date.now() - 1_000)
+    });
+
+    await expect(service.verifyEmail({ token: "expired_verification_token_1234567890" })).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a used verification link that no longer updates a row", async () => {
+    const { service, prisma } = createService();
+
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_1",
+      emailVerificationTokenExpiresAt: new Date(Date.now() + 60_000)
+    });
+    prisma.user.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.verifyEmail({ token: "used_verification_token_123456789012" })).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it("marks a valid email verification token as used", async () => {
+    const { service, prisma } = createService();
+
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_1",
+      emailVerificationTokenExpiresAt: new Date(Date.now() + 60_000)
+    });
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.verifyEmail({ token: "valid_verification_token_12345678901" })).resolves.toEqual({ verified: true });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        id: "user_1",
+        emailVerificationTokenHash: expect.any(String),
+        emailVerificationTokenExpiresAt: { gt: expect.any(Date) },
+        emailVerifiedAt: null
+      }),
+      data: expect.objectContaining({
+        emailVerifiedAt: expect.any(Date),
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null
+      })
+    }));
   });
 
   it("rejects an expired reset token", async () => {
@@ -541,6 +664,8 @@ function buildUserShape() {
     role: Role.BUYER,
     phone: null,
     emailVerifiedAt: null,
+    emailVerificationTokenHash: null,
+    emailVerificationTokenExpiresAt: null,
     refreshTokenHash: null,
     resetTokenHash: null,
     resetTokenExpiresAt: null,

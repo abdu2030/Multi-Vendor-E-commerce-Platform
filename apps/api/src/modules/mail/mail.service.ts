@@ -2,14 +2,18 @@ import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import nodemailer, { Transporter } from "nodemailer";
 import {
+  renderEmailVerificationEmail,
   renderNotificationEmail,
   renderOrderConfirmationEmail,
+  renderPasswordResetEmail,
   renderSellerDecisionEmail,
   renderSellerNewOrderEmail,
   renderShippingUpdateEmail,
   renderWelcomeEmail
 } from "./email-templates";
 import { QueuedEmailJob, SendMailOptions } from "./mail.types";
+
+const emailAddressPattern = /^[^\s@<>"'(),;:\\[\]]+@[^\s@<>"'(),;:\\[\]]+\.[^\s@<>"'(),;:\\[\]]+$/;
 
 @Injectable()
 export class MailService implements OnModuleDestroy {
@@ -77,6 +81,18 @@ export class MailService implements OnModuleDestroy {
           message: job.message,
           dashboardUrl: `${this.frontendUrl}/dashboard`
         });
+      case "password-reset":
+        return renderPasswordResetEmail({
+          recipientName: job.recipientName,
+          resetUrl: job.actionUrl,
+          expiresInMinutes: job.expiresInMinutes
+        });
+      case "email-verification":
+        return renderEmailVerificationEmail({
+          recipientName: job.recipientName,
+          verificationUrl: job.actionUrl,
+          expiresInHours: job.expiresInHours
+        });
       case "seller-decision":
         return renderSellerDecisionEmail({
           recipientName: job.recipientName,
@@ -125,30 +141,54 @@ export class MailService implements OnModuleDestroy {
       return false;
     }
 
+    const recipient = normalizeEmailAddress(to);
+    const fromAddress = normalizeEmailAddress(this.fromAddress);
+    const fromName = validateHeaderValue(this.fromName, "from name");
+    const subject = validateHeaderValue(email.subject, "subject");
+
     try {
       const info = await this.transporter.sendMail({
         from: {
-          name: this.fromName,
-          address: this.fromAddress
+          name: fromName,
+          address: fromAddress
         },
-        to,
-        subject: email.subject,
+        to: recipient,
+        subject,
         text: email.text,
         html: email.html
       });
-      this.logger.log(`Email ${info.messageId} sent to ${maskEmail(to)}.`);
+      this.logger.log(`Email ${info.messageId} sent to ${maskEmail(recipient)}.`);
       return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown SMTP error";
-      this.logger.error(`Email delivery to ${maskEmail(to)} failed: ${message}`);
+    } catch {
+      this.logger.error(`Email delivery to ${maskEmail(recipient)} failed.`);
 
       if (options.throwOnError) {
-        throw error;
+        throw new Error("Email delivery failed.");
       }
 
       return false;
     }
   }
+}
+
+function normalizeEmailAddress(value: string) {
+  const email = value.trim().toLowerCase();
+
+  if (/[\r\n]/.test(value) || !emailAddressPattern.test(email)) {
+    throw new Error("Invalid email recipient address.");
+  }
+
+  return email;
+}
+
+function validateHeaderValue(value: string, field: string) {
+  const headerValue = value.trim();
+
+  if (!headerValue || /[\r\n]/.test(headerValue)) {
+    throw new Error(`Invalid email ${field}.`);
+  }
+
+  return headerValue;
 }
 
 function maskEmail(email: string) {

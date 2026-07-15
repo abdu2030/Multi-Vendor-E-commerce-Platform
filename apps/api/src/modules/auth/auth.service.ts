@@ -7,12 +7,15 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { Prisma, Role, User } from "@prisma/client";
 import { createHash, randomBytes, randomUUID } from "crypto";
+import { EmailQueueService } from "../jobs/email-queue.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { VerifyEmailDto } from "./dto/verify-email.dto";
+import { EmailActionRateLimitService } from "./email-action-rate-limit.service";
 import { JwtTokenService } from "./jwt-token.service";
 import { LoginRateLimitService } from "./login-rate-limit.service";
 import { PasswordService } from "./password.service";
@@ -44,7 +47,9 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    private readonly loginRateLimit: LoginRateLimitService
+    private readonly loginRateLimit: LoginRateLimitService,
+    private readonly emailQueue: EmailQueueService,
+    private readonly emailActionRateLimit: EmailActionRateLimitService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -55,17 +60,29 @@ export class AuthService {
       throw new ConflictException("Registration could not be completed.");
     }
 
+    const verificationToken = this.generateEmailVerificationToken();
+    const verificationTtlHours = this.emailVerificationTokenTtlHours();
     const user = await this.prisma.user.create({
       data: {
         fullName: dto.fullName.trim(),
         email,
         phone: dto.phone?.trim(),
         role: Role.BUYER,
-        passwordHash: await this.passwordService.hashPassword(dto.password)
+        passwordHash: await this.passwordService.hashPassword(dto.password),
+        emailVerificationTokenHash: this.hashEmailVerificationToken(verificationToken),
+        emailVerificationTokenExpiresAt: new Date(Date.now() + verificationTtlHours * 60 * 60 * 1000)
       }
     });
 
     const session = await this.createSession(user);
+
+    await this.emailQueue.enqueue(`email-verification-${user.id}`, {
+      kind: "email-verification",
+      to: user.email,
+      recipientName: user.fullName,
+      actionUrl: this.buildEmailVerificationUrl(verificationToken),
+      expiresInHours: verificationTtlHours
+    });
 
     await this.notifications.create({
       userId: user.id,
@@ -75,7 +92,10 @@ export class AuthService {
       emailTemplate: "welcome"
     });
 
-    return session;
+    return {
+      ...session,
+      verificationToken: this.shouldExposeEmailVerificationTokenForTesting() ? verificationToken : undefined
+    };
   }
 
   async login(dto: LoginDto) {
@@ -99,6 +119,9 @@ export class AuthService {
 
   async requestPasswordReset(emailInput: string) {
     const email = normalizeEmail(emailInput);
+
+    this.emailActionRateLimit.assertCanSend("password-reset", email);
+
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -106,7 +129,7 @@ export class AuthService {
     }
 
     const resetToken = this.generateResetToken();
-    const resetTokenTtlMinutes = Number(this.config.get("PASSWORD_RESET_TOKEN_TTL_MINUTES") ?? 30);
+    const resetTokenTtlMinutes = this.passwordResetTokenTtlMinutes();
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -116,10 +139,90 @@ export class AuthService {
       }
     });
 
+    await this.emailQueue.enqueue(`password-reset-${user.id}-${this.hashResetToken(resetToken).slice(0, 16)}`, {
+      kind: "password-reset",
+      to: user.email,
+      recipientName: user.fullName,
+      actionUrl: this.buildPasswordResetUrl(resetToken),
+      expiresInMinutes: resetTokenTtlMinutes
+    });
+
     return {
       ...passwordResetAccepted(),
       resetToken: this.shouldExposeResetTokenForTesting() ? resetToken : undefined
     };
+  }
+
+  async requestEmailVerification(emailInput: string) {
+    const email = normalizeEmail(emailInput);
+
+    this.emailActionRateLimit.assertCanSend("email-verification", email);
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user || user.emailVerifiedAt) {
+      return emailVerificationAccepted();
+    }
+
+    const verificationToken = this.generateEmailVerificationToken();
+    const verificationTtlHours = this.emailVerificationTokenTtlHours();
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: this.hashEmailVerificationToken(verificationToken),
+        emailVerificationTokenExpiresAt: new Date(Date.now() + verificationTtlHours * 60 * 60 * 1000)
+      }
+    });
+
+    await this.emailQueue.enqueue(`email-verification-${user.id}`, {
+      kind: "email-verification",
+      to: user.email,
+      recipientName: user.fullName,
+      actionUrl: this.buildEmailVerificationUrl(verificationToken),
+      expiresInHours: verificationTtlHours
+    });
+
+    return {
+      ...emailVerificationAccepted(),
+      verificationToken: this.shouldExposeEmailVerificationTokenForTesting() ? verificationToken : undefined
+    };
+  }
+
+  async verifyEmail(dto: VerifyEmailDto) {
+    const tokenHash = this.hashEmailVerificationToken(dto.token);
+    const now = new Date();
+    const user = await this.prisma.user.findFirst({
+      where: { emailVerificationTokenHash: tokenHash },
+      select: {
+        id: true,
+        emailVerificationTokenExpiresAt: true
+      }
+    });
+
+    if (!user || !user.emailVerificationTokenExpiresAt || user.emailVerificationTokenExpiresAt <= now) {
+      throw new UnauthorizedException("Invalid or expired email verification token.");
+    }
+
+    const update = await this.prisma.user.updateMany({
+      where: {
+        id: user.id,
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: { gt: now },
+        emailVerifiedAt: null
+      },
+      data: {
+        emailVerifiedAt: now,
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null
+      }
+    });
+
+    if (update.count !== 1) {
+      throw new UnauthorizedException("Invalid or expired email verification token.");
+    }
+
+    return { verified: true };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -329,6 +432,10 @@ export class AuthService {
     return createSecretHash(resetToken, this.getSecret("JWT_REFRESH_SECRET"));
   }
 
+  private hashEmailVerificationToken(token: string) {
+    return createSecretHash(token, this.getSecret("JWT_REFRESH_SECRET"));
+  }
+
   private getSecret(key: string) {
     const secret = this.config.get<string>(key);
 
@@ -347,7 +454,35 @@ export class AuthService {
     return randomBytes(48).toString("base64url");
   }
 
+  private generateEmailVerificationToken() {
+    return randomBytes(48).toString("base64url");
+  }
+
+  private passwordResetTokenTtlMinutes() {
+    return Math.min(Number(this.config.get("PASSWORD_RESET_TOKEN_TTL_MINUTES") ?? 30), 60);
+  }
+
+  private emailVerificationTokenTtlHours() {
+    return Math.min(Number(this.config.get("EMAIL_VERIFICATION_TOKEN_TTL_HOURS") ?? 24), 24);
+  }
+
+  private buildPasswordResetUrl(token: string) {
+    return `${this.frontendUrl()}/password-reset?token=${encodeURIComponent(token)}`;
+  }
+
+  private buildEmailVerificationUrl(token: string) {
+    return `${this.frontendUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+  }
+
+  private frontendUrl() {
+    return (this.config.get<string>("FRONTEND_URL")?.trim() || "http://localhost:3000").replace(/\/$/, "");
+  }
+
   private shouldExposeResetTokenForTesting() {
+    return this.config.get<string>("NODE_ENV") === "test";
+  }
+
+  private shouldExposeEmailVerificationTokenForTesting() {
     return this.config.get<string>("NODE_ENV") === "test";
   }
 }
@@ -361,5 +496,9 @@ function createSecretHash(value: string, secret: string) {
 }
 
 function passwordResetAccepted() {
+  return { accepted: true };
+}
+
+function emailVerificationAccepted() {
   return { accepted: true };
 }

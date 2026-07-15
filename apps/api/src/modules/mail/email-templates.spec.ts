@@ -1,6 +1,8 @@
 import {
+  renderEmailVerificationEmail,
   renderNotificationEmail,
   renderOrderConfirmationEmail,
+  renderPasswordResetEmail,
   renderSellerDecisionEmail,
   renderSellerNewOrderEmail,
   renderShippingUpdateEmail,
@@ -35,6 +37,26 @@ describe("email templates", () => {
     expect(email.html).toContain("&lt;script&gt;");
     expect(email.html).toContain("Review &lt;approved&gt;");
     expect(email.html).toContain("Great &amp; ready");
+  });
+
+  it("renders short-lived reset and verification links", () => {
+    const reset = renderPasswordResetEmail({
+      recipientName: "Buyer One",
+      resetUrl: "https://marketo.example/password-reset?token=abc",
+      expiresInMinutes: 30
+    });
+    const verification = renderEmailVerificationEmail({
+      recipientName: "Buyer One",
+      verificationUrl: "https://marketo.example/verify-email?token=abc",
+      expiresInHours: 24
+    });
+
+    expect(reset.subject).toBe("Reset your Marketo password");
+    expect(reset.text).toContain("expires in 30 minutes");
+    expect(reset.html).toContain("https://marketo.example/password-reset?token=abc");
+    expect(verification.subject).toBe("Verify your Marketo email");
+    expect(verification.text).toContain("expires in 24 hours");
+    expect(verification.html).toContain("https://marketo.example/verify-email?token=abc");
   });
 
   it("renders each queued marketplace lifecycle template", () => {
