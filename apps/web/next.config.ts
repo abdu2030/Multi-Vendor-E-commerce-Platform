@@ -4,6 +4,7 @@ import path from "node:path";
 validatePublicEnvironment();
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
   poweredByHeader: false,
   async headers() {

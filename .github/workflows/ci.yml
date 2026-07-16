@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-build-and-scan:
+    name: Test, Build, And Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit dependencies report
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Audit high and critical dependency gate
+        run: npm audit --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t marketo-api:ci .
+
+      - name: Build web image
+        run: docker build -f Dockerfile.web -t marketo-web:ci .
+
+      - name: Confirm API image has no env files
+        run: |
+          docker run --rm --entrypoint sh marketo-api:ci -c 'if find /app -name ".env*" -print -quit | grep -q .; then find /app -name ".env*"; exit 1; fi'
+
+      - name: Confirm web image has no env files
+        run: |
+          docker run --rm --entrypoint sh marketo-web:ci -c 'if find /app -name ".env*" -print -quit | grep -q .; then find /app -name ".env*"; exit 1; fi'

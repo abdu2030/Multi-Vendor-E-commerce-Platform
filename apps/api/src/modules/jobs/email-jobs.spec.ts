@@ -88,9 +88,10 @@ describe("email jobs", () => {
       where: { jobId: "welcome-buyer_1" },
       data: expect.objectContaining({
         status: failedStatus,
-        lastError: "SMTP rejected the message"
+        lastError: "Email job failed."
       })
     });
+    expect(JSON.stringify(prisma.emailJobDelivery.update.mock.calls)).not.toContain("SMTP rejected the message");
   });
 
   it("records successful delivery so duplicate email jobs do not send twice", async () => {
