@@ -1,3 +1,4 @@
+import { Test } from "@nestjs/testing";
 import { SecurityLoggerService } from "./security-logger.service";
 
 describe("SecurityLoggerService", () => {
@@ -35,5 +36,13 @@ describe("SecurityLoggerService", () => {
     expect(payload).not.toContain("smtp-secret");
     expect(payload).not.toContain("4242424242424242");
     expect(payload).not.toContain("provider-api-key");
+  });
+  it("can be resolved by Nest without an injected logger provider", async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [SecurityLoggerService]
+    }).compile();
+
+    expect(moduleRef.get(SecurityLoggerService)).toBeInstanceOf(SecurityLoggerService);
+    await moduleRef.close();
   });
 });

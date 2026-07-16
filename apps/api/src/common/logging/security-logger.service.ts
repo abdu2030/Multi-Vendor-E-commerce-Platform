@@ -1,11 +1,15 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { safeStringifyLog } from "./redaction";
 
 export type SecurityLogLevel = "log" | "warn" | "error";
 
 @Injectable()
 export class SecurityLoggerService {
-  constructor(private readonly logger = new Logger("Security")) {}
+  private readonly logger: Pick<Logger, "error" | "log" | "warn">;
+
+  constructor(@Optional() logger?: Pick<Logger, "error" | "log" | "warn">) {
+    this.logger = logger ?? new Logger("Security");
+  }
 
   log(event: string, fields: Record<string, unknown> = {}, level: SecurityLogLevel = "warn") {
     const payload = safeStringifyLog({
