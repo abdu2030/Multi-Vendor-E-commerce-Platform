@@ -19,7 +19,8 @@
     "qa:production": "node scripts/production-qa.js",
     "seed": "node prisma/seed.js",
     "seed:admin": "node prisma/seed.js",
-    "seed:starter": "node prisma/seed.js"
+    "seed:starter": "node prisma/seed.js",
+    "pretest": "npm run prisma:generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
