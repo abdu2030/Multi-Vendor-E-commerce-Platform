@@ -5,6 +5,7 @@ import {
   NestInterceptor
 } from "@nestjs/common";
 import { Request } from "express";
+import { getSafePath } from "../middleware/request-logging.middleware";
 import { map, Observable } from "rxjs";
 
 @Injectable()
@@ -16,7 +17,7 @@ export class ResponseInterceptor implements NestInterceptor {
       map((data) => ({
         success: true,
         data,
-        path: request.url,
+        path: getSafePath(request),
         timestamp: new Date().toISOString()
       }))
     );

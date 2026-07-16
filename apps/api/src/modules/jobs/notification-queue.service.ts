@@ -23,7 +23,7 @@ export class NotificationQueueService implements OnModuleInit, OnModuleDestroy {
       prefix: this.redis.queuePrefix(),
       defaultJobOptions: NOTIFICATION_QUEUE_DEFAULT_JOB_OPTIONS
     });
-    this.queue.on("error", (error) => this.logger.error(`Notification queue error: ${error.message}`));
+    this.queue.on("error", () => this.logger.error("Notification queue error."));
   }
 
   async enqueue(data: CreateNotificationJob) {
@@ -36,9 +36,8 @@ export class NotificationQueueService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.queue.add(CREATE_NOTIFICATION_JOB, data, { jobId: data.notificationId });
       return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown queue error";
-      this.logger.warn(`Notification queue unavailable; using database fallback: ${message}`);
+    } catch {
+      this.logger.warn("Notification queue unavailable; using database fallback.");
       return false;
     }
   }

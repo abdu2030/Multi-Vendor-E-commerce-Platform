@@ -14,6 +14,7 @@ import {
   SellerStatus
 } from "@prisma/client";
 import Stripe from "stripe";
+import { SecurityLoggerService } from "../../common/logging/security-logger.service";
 import { CartCacheService } from "../cart/cart-cache.service";
 import { EmailQueueService } from "../jobs/email-queue.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -33,7 +34,8 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly cartCache: CartCacheService,
     private readonly emailQueue: EmailQueueService,
-    config: ConfigService
+    config: ConfigService,
+    private readonly securityLogger: SecurityLoggerService = new SecurityLoggerService()
   ) {
     const secretKey = config.get<string>("STRIPE_SECRET_KEY")?.trim();
 
@@ -145,10 +147,18 @@ export class CheckoutService {
     }
 
     if (!signature) {
+      this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+        provider: WEBHOOK_PROVIDER,
+        reason: "missing_signature"
+      });
       throw new BadRequestException("Missing Stripe signature header.");
     }
 
     if (!rawBody) {
+      this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+        provider: WEBHOOK_PROVIDER,
+        reason: "missing_raw_body"
+      });
       throw new BadRequestException("Missing raw Stripe webhook body.");
     }
 
@@ -199,6 +209,10 @@ export class CheckoutService {
     try {
       return this.stripe!.webhooks.constructEvent(rawBody, signature, this.webhookSecret);
     } catch {
+      this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+        provider: WEBHOOK_PROVIDER,
+        reason: "invalid_signature"
+      });
       throw new BadRequestException("Invalid Stripe webhook signature.");
     }
   }
@@ -321,6 +335,12 @@ export class CheckoutService {
     const verifiedSession = await this.stripe!.checkout.sessions.retrieve(sessionId);
 
     if (verifiedSession.payment_status !== "paid") {
+      this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+        provider: WEBHOOK_PROVIDER,
+        reason: "session_not_paid",
+        sessionId,
+        paymentStatus: verifiedSession.payment_status
+      });
       throw new ConflictException("Stripe checkout session is not paid.");
     }
 
@@ -376,6 +396,14 @@ export class CheckoutService {
       }
 
       if (payment.buyerId !== buyerId) {
+        this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+          provider: WEBHOOK_PROVIDER,
+          reason: "buyer_mismatch",
+          sessionId: session.id,
+          paymentId: payment.id,
+          expectedBuyerId: payment.buyerId,
+          metadataBuyerId: buyerId
+        });
         throw new ConflictException("Stripe payment buyer does not match checkout metadata.");
       }
 
@@ -405,6 +433,16 @@ export class CheckoutService {
       );
 
       if (payment.amountCents !== subtotalCents || payment.currency !== currency) {
+        this.securityLogger.log("PAYMENT_VERIFICATION_FAILURE", {
+          provider: WEBHOOK_PROVIDER,
+          reason: "amount_or_currency_mismatch",
+          sessionId: session.id,
+          paymentId: payment.id,
+          expectedAmountCents: payment.amountCents,
+          currentSubtotalCents: subtotalCents,
+          expectedCurrency: payment.currency,
+          currentCurrency: currency
+        });
         throw new ConflictException("Stripe payment amount does not match the current cart total.");
       }
 
@@ -748,8 +786,8 @@ function generateOrderNumber() {
   return `ORD-${timestamp}-${random}`;
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown webhook processing error.";
+function getErrorMessage(_error: unknown) {
+  return "Webhook processing failed.";
 }
 
 function isUniqueConstraintError(error: unknown) {

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Role, SellerApplicationStatus, SellerStatus } from "@prisma/client";
+import { SecurityLoggerService } from "../../common/logging/security-logger.service";
 import { EmailQueueService } from "../jobs/email-queue.service";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -12,6 +13,7 @@ export class AdminSellerApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailQueue: EmailQueueService,
+    private readonly securityLogger: SecurityLoggerService = new SecurityLoggerService(),
   ) {}
 
   getPending() {
@@ -98,6 +100,14 @@ export class AdminSellerApplicationsService {
       await tx.user.update({
         where: { id: application.userId },
         data: { role: Role.SELLER },
+      });
+      this.securityLogger.log("ROLE_CHANGE", {
+        actorUserId: adminUserId,
+        targetUserId: application.userId,
+        previousRole: Role.PENDING_SELLER,
+        newRole: Role.SELLER,
+        reason: "seller_application_approved",
+        applicationId: application.id
       });
       await tx.sellerApplication.update({
         where: { id: application.id },
@@ -198,6 +208,14 @@ export class AdminSellerApplicationsService {
         },
         data: { role: Role.BUYER },
       });
+      this.securityLogger.log("ROLE_CHANGE", {
+        actorUserId: adminUserId,
+        targetUserId: application.userId,
+        previousRole: Role.PENDING_SELLER,
+        newRole: Role.BUYER,
+        reason: "seller_application_rejected",
+        applicationId: application.id
+      });
       await tx.auditLog.create({
         data: {
           actorUserId: adminUserId,
@@ -266,6 +284,14 @@ export class AdminSellerApplicationsService {
           role: { in: [Role.PENDING_SELLER, Role.SELLER] },
         },
         data: { role: Role.BUYER },
+      });
+      this.securityLogger.log("ROLE_CHANGE", {
+        actorUserId: adminUserId,
+        targetUserId: application.userId,
+        previousRole: Role.SELLER,
+        newRole: Role.BUYER,
+        reason: "seller_application_suspended",
+        applicationId: application.id
       });
       await tx.auditLog.create({
         data: {

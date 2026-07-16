@@ -30,7 +30,7 @@ export class CartCacheService implements OnModuleDestroy {
 
     this.client = new Redis(redisUrl, options);
     this.client.on("error", (error) => {
-      this.logger.warn(`Redis cart cache unavailable: ${error.message}`);
+      this.logger.warn("Redis cart cache unavailable.");
     });
   }
 
@@ -102,9 +102,8 @@ export class CartCacheService implements OnModuleDestroy {
       }
 
       return await operation(this.client);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown error";
-      this.logger.warn(`Redis cart cache skipped: ${message}`);
+    } catch {
+      this.logger.warn("Redis cart cache skipped.");
       return null;
     }
   }

@@ -1,5 +1,6 @@
 import { ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { SellerStatus } from "@prisma/client";
+import { SecurityLoggerService } from "../../common/logging/security-logger.service";
 import { CloudinaryService } from "../cloudinary/cloudinary.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UploadImageDto } from "./dto/upload-image.dto";
@@ -18,7 +19,8 @@ export class SellerUploadsService {
 
   constructor(
     private readonly cloudinary: CloudinaryService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
+    private readonly securityLogger: SecurityLoggerService = new SecurityLoggerService()
   ) {}
 
   async uploadStoreLogo(userId: string, dto: UploadImageDto) {
@@ -131,6 +133,12 @@ export class SellerUploadsService {
     }
 
     if (bucket.count >= maxUploadsPerWindow) {
+      this.securityLogger.log("REPEATED_UPLOAD_FAILURES", {
+        userId,
+        count: bucket.count,
+        maxUploadsPerWindow,
+        resetAt: new Date(bucket.resetAt).toISOString()
+      });
       throw new HttpException("Too many uploads. Please wait before uploading more files.", HttpStatus.TOO_MANY_REQUESTS);
     }
 

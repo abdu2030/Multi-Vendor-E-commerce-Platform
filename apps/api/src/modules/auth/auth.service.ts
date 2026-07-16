@@ -7,6 +7,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { Prisma, Role, User } from "@prisma/client";
 import { createHash, randomBytes, randomUUID } from "crypto";
+import { SecurityLoggerService } from "../../common/logging/security-logger.service";
 import { EmailQueueService } from "../jobs/email-queue.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -49,7 +50,8 @@ export class AuthService {
     private readonly notifications: NotificationsService,
     private readonly loginRateLimit: LoginRateLimitService,
     private readonly emailQueue: EmailQueueService,
-    private readonly emailActionRateLimit: EmailActionRateLimitService
+    private readonly emailActionRateLimit: EmailActionRateLimitService,
+    private readonly securityLogger: SecurityLoggerService = new SecurityLoggerService()
   ) {}
 
   async register(dto: RegisterDto) {
@@ -109,6 +111,10 @@ export class AuthService {
 
     if (!user || !passwordMatches) {
       this.loginRateLimit.recordFailedAttempt(email);
+      this.securityLogger.log("LOGIN_FAILURE", {
+        email,
+        reason: user ? "invalid_password" : "unknown_email"
+      });
       throw new UnauthorizedException("Invalid email or password.");
     }
 
@@ -310,6 +316,9 @@ export class AuthService {
       });
 
       if (!storedToken) {
+        this.securityLogger.log("REFRESH_TOKEN_REUSE", {
+          reason: "unknown_token_hash"
+        });
         throw new UnauthorizedException("Invalid refresh token.");
       }
 
@@ -317,6 +326,12 @@ export class AuthService {
         await tx.refreshToken.updateMany({
           where: { familyId: storedToken.familyId, revokedAt: null },
           data: { revokedAt: now }
+        });
+        this.securityLogger.log("REFRESH_TOKEN_REUSE", {
+          reason: storedToken.revokedAt ? "revoked_token" : "rotated_token",
+          userId: storedToken.userId,
+          refreshTokenId: storedToken.id,
+          familyId: storedToken.familyId
         });
         throw new UnauthorizedException("Invalid refresh token.");
       }
@@ -346,6 +361,12 @@ export class AuthService {
         await tx.refreshToken.updateMany({
           where: { familyId: storedToken.familyId, revokedAt: null },
           data: { revokedAt: now }
+        });
+        this.securityLogger.log("REFRESH_TOKEN_REUSE", {
+          reason: "rotation_race",
+          userId: storedToken.userId,
+          refreshTokenId: storedToken.id,
+          familyId: storedToken.familyId
         });
         throw new UnauthorizedException("Invalid refresh token.");
       }

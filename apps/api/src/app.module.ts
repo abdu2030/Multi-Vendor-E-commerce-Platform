@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
+import { SecurityLoggingModule } from "./common/logging/security-logging.module";
 import { validateEnv } from "./config/env.validation";
 import { AdminCategoriesModule } from "./modules/admin-categories/admin-categories.module";
 import { AdminDashboardModule } from "./modules/admin-dashboard/admin-dashboard.module";
@@ -35,6 +36,7 @@ const nodeEnv = process.env.NODE_ENV?.trim() || "development";
       validate: validateEnv
     }),
     PrismaModule,
+    SecurityLoggingModule,
     MailModule,
     JobsModule,
     AuthModule,

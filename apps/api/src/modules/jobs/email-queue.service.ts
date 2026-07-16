@@ -27,7 +27,7 @@ export class EmailQueueService implements OnModuleInit, OnModuleDestroy {
       prefix: this.redis.queuePrefix(),
       defaultJobOptions: EMAIL_QUEUE_DEFAULT_JOB_OPTIONS
     });
-    this.queue.on("error", (error) => this.logger.error(`Email queue error: ${error.message}`));
+    this.queue.on("error", () => this.logger.error("Email queue error."));
   }
 
   async enqueue(jobId: string, data: QueuedEmailJob) {
@@ -37,9 +37,8 @@ export class EmailQueueService implements OnModuleInit, OnModuleDestroy {
       try {
         await this.queue.add(SEND_EMAIL_JOB, data, { jobId });
         return true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "unknown queue error";
-        this.logger.warn(`Email queue unavailable; using SMTP fallback: ${message}`);
+      } catch {
+        this.logger.warn("Email queue unavailable; using SMTP fallback.");
       }
     }
 

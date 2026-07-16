@@ -1,14 +1,20 @@
 import { BadRequestException, ValidationError } from "@nestjs/common";
+import { SecurityLoggerService } from "../logging/security-logger.service";
 
 export type FormattedValidationError = {
   field: string;
   messages: string[];
 };
 
+const securityLogger = new SecurityLoggerService();
+
 export function createValidationException(errors: ValidationError[]) {
+  const formattedErrors = formatValidationErrors(errors);
+  logSuspiciousCouponAttempts(formattedErrors);
+
   return new BadRequestException({
     message: "Validation failed. Please check the highlighted fields.",
-    errors: formatValidationErrors(errors)
+    errors: formattedErrors
   });
 }
 
@@ -32,6 +38,20 @@ export function formatValidationErrors(
       },
       ...nestedErrors
     ];
+  });
+}
+
+function logSuspiciousCouponAttempts(errors: FormattedValidationError[]) {
+  const couponFields = errors
+    .map((error) => error.field)
+    .filter((field) => /(^|\.)coupon(Code|Codes)?$/i.test(field));
+
+  if (couponFields.length === 0) {
+    return;
+  }
+
+  securityLogger.log("SUSPICIOUS_COUPON_ATTEMPT", {
+    fields: couponFields
   });
 }
 

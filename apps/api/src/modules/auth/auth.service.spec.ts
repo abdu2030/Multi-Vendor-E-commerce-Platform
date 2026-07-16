@@ -1,5 +1,6 @@
 import { ConflictException, HttpException, HttpStatus, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { SecurityLoggerService } from "../../common/logging/security-logger.service";
 import { Role } from "@prisma/client";
 import { createHash } from "crypto";
 import { EmailQueueService } from "../jobs/email-queue.service";
@@ -22,6 +23,7 @@ describe("AuthService", () => {
     loginRateLimit?: Partial<LoginRateLimitService>;
     emailQueue?: Partial<EmailQueueService>;
     emailActionRateLimit?: { assertCanSend?: jest.Mock };
+    securityLogger?: Partial<SecurityLoggerService>;
   } = {}) {
     const config = {
       get: jest.fn((key: string) => {
@@ -70,6 +72,10 @@ describe("AuthService", () => {
       assertCanSend: jest.fn(),
       ...overrides.emailActionRateLimit
     };
+    const securityLogger = {
+      log: jest.fn(),
+      ...overrides.securityLogger
+    } as unknown as SecurityLoggerService;
 
     return {
       config,
@@ -80,6 +86,7 @@ describe("AuthService", () => {
       loginRateLimit,
       emailQueue,
       emailActionRateLimit,
+      securityLogger,
       service: new AuthService(
         config,
         jwt,
@@ -88,7 +95,8 @@ describe("AuthService", () => {
         notifications,
         loginRateLimit,
         emailQueue,
-        emailActionRateLimit as never
+        emailActionRateLimit as never,
+        securityLogger
       )
     };
   }
@@ -190,7 +198,7 @@ describe("AuthService", () => {
   });
 
   it("uses a generic login failure and records failed attempts for missing users", async () => {
-    const { service, prisma, password, loginRateLimit } = createService({
+    const { service, prisma, password, loginRateLimit, securityLogger } = createService({
       password: { verifyPassword: jest.fn().mockResolvedValue(false) }
     });
 
@@ -202,6 +210,11 @@ describe("AuthService", () => {
     })).rejects.toBeInstanceOf(UnauthorizedException);
     expect(password.verifyPassword).toHaveBeenCalledWith("wrong-password", expect.stringMatching(/^\$2b\$/));
     expect(loginRateLimit.recordFailedAttempt).toHaveBeenCalledWith("missing@example.com");
+    expect(securityLogger.log).toHaveBeenCalledWith("LOGIN_FAILURE", {
+      email: "missing@example.com",
+      reason: "unknown_email"
+    });
+    expect(JSON.stringify((securityLogger.log as jest.Mock).mock.calls)).not.toContain("wrong-password");
     expect(prisma.refreshToken.create).not.toHaveBeenCalled();
   });
 
@@ -508,7 +521,7 @@ describe("AuthService", () => {
       expiresAt: new Date(Date.now() + 60_000),
       user: buildUser()
     };
-    const { service, prisma } = createService();
+    const { service, prisma, securityLogger } = createService();
 
     prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
 
@@ -518,6 +531,12 @@ describe("AuthService", () => {
       data: { revokedAt: expect.any(Date) }
     });
     expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    expect(securityLogger.log).toHaveBeenCalledWith("REFRESH_TOKEN_REUSE", expect.objectContaining({
+      reason: "revoked_token",
+      refreshTokenId: "refresh_1",
+      familyId: "family_1"
+    }));
+    expect(JSON.stringify((securityLogger.log as jest.Mock).mock.calls)).not.toContain("refresh_token");
   });
   it("stores only a SHA-256 hash of the raw refresh token", async () => {
     const user = buildUser();
@@ -548,7 +567,7 @@ describe("AuthService", () => {
       expiresAt: new Date(Date.now() - 60_000),
       user: buildUser()
     };
-    const { service, prisma } = createService();
+    const { service, prisma, securityLogger } = createService();
 
     prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
 
@@ -570,7 +589,7 @@ describe("AuthService", () => {
       expiresAt: new Date(Date.now() + 60_000),
       user: buildUser()
     };
-    const { service, prisma } = createService();
+    const { service, prisma, securityLogger } = createService();
 
     prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
 

@@ -9,7 +9,7 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { createCsrfOriginMiddleware } from "./common/middleware/csrf-origin.middleware";
 import { createRateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
-import { createRequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
+import { createRequestLoggingMiddleware, RESPONSE_REQUEST_ID_HEADER } from "./common/middleware/request-logging.middleware";
 import { createValidationException } from "./common/validation/validation-errors";
 import { createCorsOriginHandler, parseCsvList } from "./config/cors.config";
 
@@ -63,7 +63,7 @@ async function bootstrap() {
     origin: createCorsOriginHandler(corsOrigins),
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-CSRF-Token"],
+    allowedHeaders: ["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-CSRF-Token", RESPONSE_REQUEST_ID_HEADER],
     maxAge: 86_400
   });
   app.useGlobalPipes(

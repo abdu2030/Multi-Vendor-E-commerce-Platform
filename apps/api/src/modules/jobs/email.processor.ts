@@ -38,9 +38,9 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
     );
     this.worker.on("completed", (job) => this.logger.debug(`Completed email job ${job.id}.`));
     this.worker.on("failed", (job, error) => {
-      this.logger.error(`Email job ${job?.id ?? "unknown"} failed: ${error.message}`);
+      this.logger.error(`Email job ${job?.id ?? "unknown"} failed.`);
     });
-    this.worker.on("error", (error) => this.logger.error(`Email worker error: ${error.message}`));
+    this.worker.on("error", () => this.logger.error("Email worker error."));
   }
 
   async onModuleDestroy() {
@@ -94,7 +94,7 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
         where: { jobId },
         data: {
           status: failedStatus,
-          lastError: getErrorMessage(error).slice(0, 500)
+          lastError: getErrorMessage(error)
         }
       });
 
@@ -113,6 +113,6 @@ function getDurableJobId(job: Job<QueuedEmailJob>) {
     .digest("hex");
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown email job error.";
+function getErrorMessage(_error: unknown) {
+  return "Email job failed.";
 }

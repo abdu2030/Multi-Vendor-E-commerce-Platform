@@ -56,7 +56,7 @@ export function createRateLimitMiddleware(options: RateLimitOptions) {
         success: false,
         statusCode: 429,
         message: "Too many requests. Try again later.",
-        path: request.originalUrl,
+        path: route,
         timestamp: new Date().toISOString()
       });
       return;
