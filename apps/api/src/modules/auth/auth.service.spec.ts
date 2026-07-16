@@ -567,7 +567,7 @@ describe("AuthService", () => {
       expiresAt: new Date(Date.now() - 60_000),
       user: buildUser()
     };
-    const { service, prisma, securityLogger } = createService();
+    const { service, prisma } = createService();
 
     prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
 
@@ -589,7 +589,7 @@ describe("AuthService", () => {
       expiresAt: new Date(Date.now() + 60_000),
       user: buildUser()
     };
-    const { service, prisma, securityLogger } = createService();
+    const { service, prisma } = createService();
 
     prisma.refreshToken.findUnique.mockResolvedValue(storedRefreshToken);
 

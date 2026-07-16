@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
-import { Request, Response } from "express";
+import { Response } from "express";
 import { safeStringifyLog } from "../logging/redaction";
 import { SecurityLoggerService } from "../logging/security-logger.service";
 import { getSafePath, RESPONSE_REQUEST_ID_HEADER, RequestWithRequestId } from "../middleware/request-logging.middleware";

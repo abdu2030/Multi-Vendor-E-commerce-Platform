@@ -37,7 +37,7 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.worker.on("completed", (job) => this.logger.debug(`Completed email job ${job.id}.`));
-    this.worker.on("failed", (job, error) => {
+    this.worker.on("failed", (job) => {
       this.logger.error(`Email job ${job?.id ?? "unknown"} failed.`);
     });
     this.worker.on("error", () => this.logger.error("Email worker error."));

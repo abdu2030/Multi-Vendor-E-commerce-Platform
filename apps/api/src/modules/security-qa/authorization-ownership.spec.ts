@@ -1,8 +1,7 @@
 import { ForbiddenException, NotFoundException, ValidationPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { OrderStatus, ProductStatus, Role, SellerStatus } from "@prisma/client";
+import { ProductStatus, Role, SellerStatus } from "@prisma/client";
 import { Request } from "express";
-import { ROLES_KEY } from "../../common/decorators/roles.decorator";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { AuthenticatedUser } from "../../common/types/authenticated-user";
 import { createValidationException } from "../../common/validation/validation-errors";

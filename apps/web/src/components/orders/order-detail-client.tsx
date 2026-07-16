@@ -8,7 +8,6 @@ import {
   ArrowRight,
   CreditCard,
   MapPin,
-  Package,
   RefreshCw,
   ShoppingBag,
   Truck,

@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
-  BadgeCheck,
   CheckCircle,
   Clock,
   Eye,

@@ -29,7 +29,7 @@ export class CartCacheService implements OnModuleDestroy {
     };
 
     this.client = new Redis(redisUrl, options);
-    this.client.on("error", (error) => {
+    this.client.on("error", () => {
       this.logger.warn("Redis cart cache unavailable.");
     });
   }

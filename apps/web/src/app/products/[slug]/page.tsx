@@ -9,7 +9,6 @@ import {
   BadgeCheck,
   Package,
   Shield,
-  ShoppingBag,
   Star,
   Tag,
   Truck,

@@ -32,7 +32,7 @@ export class NotificationProcessor implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.worker.on("completed", (job) => this.logger.debug(`Completed notification job ${job.id}.`));
-    this.worker.on("failed", (job, error) => {
+    this.worker.on("failed", (job) => {
       this.logger.error(`Notification job ${job?.id ?? "unknown"} failed.`);
     });
     this.worker.on("error", () => this.logger.error("Notification worker error."));

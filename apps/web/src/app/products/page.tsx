@@ -8,7 +8,6 @@ import {
   Search,
   Shield,
   Star,
-  Tag,
 } from "@/components/imported/design-icons";
 import { getCategories } from "@/lib/categories";
 import { PublicProduct, getPublicProducts } from "@/lib/public-products";
