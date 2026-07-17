@@ -5,7 +5,7 @@ services:
     plan: free
     region: oregon
     branch: main
-    buildCommand: npm ci --include=dev && npm run build -w apps/api
+    buildCommand: npm ci --include=dev && npm run prisma:deploy -w apps/api && npm run build -w apps/api
     startCommand: npm run start -w apps/api
     healthCheckPath: /api/health
     autoDeployTrigger: commit
