@@ -106,4 +106,37 @@ describe("validateEnv", () => {
 
     expect(validated.ALLOW_TEST_STRIPE_KEYS).toBe(true);
   });
+  it("rejects production frontend and CORS origins that are not HTTPS", () => {
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        FRONTEND_URL: "http://market.internal"
+      })
+    ).toThrow("FRONTEND_URL must use https:// in staging and production");
+
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        CORS_ORIGIN: "https://market.internal,http://admin.market.internal"
+      })
+    ).toThrow("CORS_ORIGIN must use https:// in staging and production");
+  });
+
+  it("rejects production database URLs without required TLS mode", () => {
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        DATABASE_URL: "postgresql://market_user@db.market.internal:5432/app"
+      })
+    ).toThrow("DATABASE_URL must include sslmode=require in staging and production");
+  });
+
+  it("rejects production test Stripe keys unless the deployment override is explicit", () => {
+    expect(() =>
+      validateEnv({
+        ...productionConfig,
+        STRIPE_SECRET_KEY: testStripeFixture
+      })
+    ).toThrow("STRIPE_SECRET_KEY must use a live Stripe key in production unless ALLOW_TEST_STRIPE_KEYS=true");
+  });
 });

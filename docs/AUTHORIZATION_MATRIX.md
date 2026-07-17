@@ -89,3 +89,12 @@ Principles applied:
 | Coupons | No coupon endpoints present | Deny by absence |
 | Payments | Created and updated through checkout/webhook services only | Buyer identity comes from cart/session metadata; webhooks require Stripe signature |
 | Payouts | Prisma model exists but no payout endpoints present | Deny by absence |
+## Stage 19 Operational Authorization Review
+
+Review date: 2026-07-17
+
+- Admin endpoints remain role-gated with `Role.ADMIN`; no public Swagger/OpenAPI route is exposed for endpoint discovery.
+- Payment state changes remain restricted to backend checkout/provider verification paths; clients cannot mark orders paid.
+- Payouts remain deny-by-absence because no public payout endpoint is present.
+- Bootstrap admin creation is environment-driven and should be run only during controlled deployment or seeding. Rotate bootstrap credentials after first production use.
+- Future endpoints must be added to this matrix before release with method, route, auth requirement, allowed roles, ownership check, and sensitive returned data.

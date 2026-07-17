@@ -253,8 +253,8 @@ The repository includes a Render Blueprint at `render.yaml` for the backend API.
 
 Blueprint behavior:
 
-- Build command: `npm ci --include=dev && npm run build -w apps/api`
-- API builds run `prisma generate` automatically before TypeScript compilation.
+- Build command: `npm ci --include=dev && npm run prisma:deploy -w apps/api && npm run build -w apps/api`
+- The build runs checked-in Prisma migrations before compiling the API. API builds also run `prisma generate` automatically before TypeScript compilation.
 - Start command: `npm run start -w apps/api`
 - Health check path: `/api/health`
 - Auto deploy trigger: commits to `main`
@@ -267,13 +267,15 @@ Deploy steps:
 3. Fill every `sync: false` environment variable from the production values in `apps/api/.env` or your password manager.
 4. Set `FRONTEND_URL` and `CORS_ORIGIN` to HTTPS production URLs. Include the Render API URL in any frontend API config after deploy.
 5. If Stripe has not verified your business yet, set `ALLOW_TEST_STRIPE_KEYS=true` in Render and use your Stripe test secret key. Switch back to `false` and use a Stripe live secret key before real production payments.
-6. Before the first deploy, run production migrations from your machine or CI:
+6. Before the first deploy, check migration status from your machine or CI:
 
 ```bash
-npm run prisma:deploy:production -w apps/api
+npm run prisma:status:production -w apps/api
 ```
 
-7. Confirm the first deploy finishes the build and starts the API.
+Render deploys now run `npm run prisma:deploy -w apps/api` before API compilation. If you deploy outside Render, run `npm run prisma:deploy:production -w apps/api` before starting the API.
+
+7. Confirm the first deploy finishes the migration, build, and API startup.
 8. Verify health:
 
 ```bash
