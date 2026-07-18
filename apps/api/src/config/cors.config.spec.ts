@@ -8,6 +8,17 @@ describe("CORS configuration", () => {
     ]);
   });
 
+  it("parses the local development frontend fallback ports", () => {
+    expect(
+      parseCsvList("http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001")
+    ).toEqual([
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001"
+    ]);
+  });
+
   it("allows requests without an Origin header and configured trusted origins", () => {
     const handler = createCorsOriginHandler(["https://shop.example.test"]);
     const callback = jest.fn();

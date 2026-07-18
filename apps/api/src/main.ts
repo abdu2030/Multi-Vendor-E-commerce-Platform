@@ -19,7 +19,7 @@ async function bootstrap() {
   });
   const config = app.get(ConfigService);
   const corsOrigins = parseCsvList(
-    config.get<string>("CORS_ORIGIN") ?? "http://localhost:3000,http://127.0.0.1:3000"
+    config.get<string>("CORS_ORIGIN") ?? "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
   );
   const express = app.getHttpAdapter().getInstance();
 
