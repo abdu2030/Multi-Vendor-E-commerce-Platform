@@ -49,6 +49,13 @@ const navigation: NavigationItem[] = [
     Icon: Users,
   },
   {
+    href: "/dashboard/seller",
+    label: "Seller dashboard",
+    description: "Store tools",
+    Icon: Package,
+    roles: ["SELLER"],
+  },
+  {
     href: "/dashboard/notifications",
     label: "Notifications",
     description: "Updates and alerts",
@@ -90,13 +97,6 @@ const navigation: NavigationItem[] = [
     label: "Application status",
     description: "Review progress",
     Icon: Shield,
-  },
-  {
-    href: "/dashboard/seller",
-    label: "Seller dashboard",
-    description: "Store tools",
-    Icon: Package,
-    roles: ["SELLER"],
   },
   {
     href: "/dashboard/admin",
