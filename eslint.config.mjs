@@ -1,4 +1,3 @@
-import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
@@ -26,11 +25,6 @@ export default [
           jsx: true
         }
       },
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.jest
-      }
     },
     plugins: {
       "@typescript-eslint": tseslint.plugin
