@@ -21,8 +21,8 @@
   --amber-soft: #fff5db;
   --red: #b42318;
   --red-soft: #fff1f0;
-  --green: #12715b;
-  --green-soft: #e9f8f2;
+  --green: #be185d;
+  --green-soft: #fce7f3;
   --sidebar: #120f24;
   --shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
 }
@@ -40,7 +40,7 @@
   --blue-soft: rgba(34, 211, 238, 0.16);
   --amber-soft: rgba(245, 158, 11, 0.14);
   --red-soft: rgba(248, 113, 113, 0.14);
-  --green-soft: rgba(16, 185, 129, 0.14);
+  --green-soft: rgba(244, 114, 182, 0.16);
   --sidebar: #090d13;
   --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
@@ -66,7 +66,7 @@
 }
 
 .dark .bg-emerald-50 {
-  background-color: rgba(16, 185, 129, 0.14) !important;
+  background-color: rgba(217, 70, 239, 0.16) !important;
 }
 
 .dark .bg-amber-50 {
@@ -92,7 +92,7 @@
 
 .dark .text-emerald-700,
 .dark .text-emerald-600 {
-  color: #34d399 !important;
+  color: #e879f9 !important;
 }
 
 .dark .text-red-700 {
@@ -104,13 +104,17 @@
   color: #fbbf24 !important;
 }
 
+
 .dark .border-stone-100,
 .dark .border-stone-200,
 .dark .border-stone-300,
-.dark .border-emerald-200,
 .dark .border-amber-200,
 .dark .border-red-200 {
   border-color: #29313d !important;
+}
+
+.dark .border-emerald-200 {
+  border-color: rgba(217, 70, 239, 0.36) !important;
 }
 
 .dark .shadow-sm,
@@ -158,6 +162,95 @@ html {
   background: var(--bg);
 }
 
+
+.bg-emerald-50 {
+  background-color: #fae8ff !important;
+}
+
+.bg-emerald-100 {
+  background-color: #f5d0fe !important;
+}
+
+.bg-emerald-500,
+.bg-emerald-600 {
+  background-color: #c026d3 !important;
+}
+
+.hover\:bg-emerald-100:hover {
+  background-color: #f5d0fe !important;
+}
+
+.hover\:bg-emerald-700:hover {
+  background-color: #a21caf !important;
+}
+
+.text-emerald-300,
+.text-emerald-400,
+.text-emerald-500,
+.text-emerald-600,
+.text-emerald-700,
+.text-emerald-800,
+.text-emerald-900 {
+  color: #c026d3 !important;
+}
+
+.border-emerald-100,
+.border-emerald-200,
+.border-emerald-300 {
+  border-color: #f0abfc !important;
+}
+
+.ring-emerald-100,
+.ring-emerald-200 {
+  --tw-ring-color: rgba(240, 171, 252, 0.72) !important;
+}
+
+.accent-emerald-600 {
+  accent-color: #c026d3 !important;
+}
+
+.focus\:border-emerald-400:focus,
+.focus\:border-emerald-500:focus {
+  border-color: #c026d3 !important;
+}
+
+.focus\:ring-emerald-100:focus,
+.focus\:ring-emerald-500\/10:focus {
+  --tw-ring-color: rgba(192, 38, 211, 0.14) !important;
+}
+
+.file\:bg-emerald-600::file-selector-button {
+  background-color: #c026d3 !important;
+}
+
+.dark .bg-emerald-100,
+.dark .hover\:bg-emerald-100:hover {
+  background-color: rgba(217, 70, 239, 0.24) !important;
+}
+
+.dark .bg-emerald-500,
+.dark .bg-emerald-600,
+.dark .hover\:bg-emerald-700:hover {
+  background-color: #c026d3 !important;
+}
+
+.dark .text-emerald-300,
+.dark .text-emerald-400,
+.dark .text-emerald-500,
+.dark .text-emerald-800,
+.dark .text-emerald-900 {
+  color: #e879f9 !important;
+}
+
+.dark .border-emerald-100,
+.dark .border-emerald-300 {
+  border-color: rgba(217, 70, 239, 0.36) !important;
+}
+
+.dark .ring-emerald-100,
+.dark .ring-emerald-200 {
+  --tw-ring-color: rgba(217, 70, 239, 0.36) !important;
+}
 body {
   background: var(--bg);
   color: var(--text);

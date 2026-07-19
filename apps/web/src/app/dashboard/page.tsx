@@ -34,7 +34,7 @@ export default function DashboardPage() {
             <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-200 backdrop-blur">
               Marketplace workspace
             </p>
-            <h2 className="mt-5 text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
+            <h2 className="mt-5 text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">
               Welcome back, {user?.fullName}.
             </h2>
             <p className="mt-4 max-w-2xl text-sm font-semibold leading-relaxed text-slate-200 sm:text-base">
@@ -117,7 +117,7 @@ function WorkspaceActionCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
-          <h3 className="mt-2 text-2xl font-black text-slate-950">{title}</h3>
+          <h3 className="mt-2 text-xl font-black text-slate-950">{title}</h3>
         </div>
         <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
           <Icon className="h-5 w-5" />

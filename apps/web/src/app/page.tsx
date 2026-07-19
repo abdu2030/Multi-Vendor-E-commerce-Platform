@@ -54,11 +54,11 @@ export default async function HomePage() {
             <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-200 shadow-2xl backdrop-blur">
               Live marketplace
             </p>
-            <h1 className="mt-6 max-w-5xl text-5xl font-black leading-[0.95] tracking-tight text-white sm:text-7xl lg:text-8xl">
+            <h1 className="mt-6 max-w-5xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
               Real products. Approved sellers. A sharper marketplace.
             </h1>
             <p className="mt-6 max-w-2xl text-base font-semibold leading-relaxed text-slate-200 sm:text-lg">
-              Every product, store, and category shown here is loaded from the API. The experience is cinematic; the marketplace data stays real.
+              Explore approved products, seller storefronts, and categories through a richer marketplace experience built around real catalog data.
             </p>
 
             <form action="/products" className="mt-9 flex max-w-2xl flex-col gap-3 rounded-[1.75rem] border border-white/15 bg-white/10 p-2 shadow-2xl backdrop-blur-xl sm:flex-row">
@@ -88,7 +88,7 @@ export default async function HomePage() {
       {hasLoadError ? (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
           <div className="rounded-[1.5rem] border border-amber-300 bg-amber-100 p-5 text-sm font-bold text-amber-950">
-            Some live marketplace data could not be loaded. The page is intentionally not showing fallback products.
+            Some marketplace data could not be loaded. Refresh the page or try again shortly.
           </div>
         </section>
       ) : null}
@@ -100,7 +100,7 @@ export default async function HomePage() {
             <SectionHeading
               eyebrow="Live catalog"
               title="Featured approved products"
-              body="The grid is populated from the public catalog API and only shows approved buyer-visible listings. No placeholder products are inserted."
+              body="A curated view of approved buyer-visible listings from active sellers."
               actionHref="/products?sort=rating_desc"
               actionLabel="Browse all products"
             />
@@ -129,7 +129,7 @@ export default async function HomePage() {
           <SectionHeading
             eyebrow="Categories"
             title="Shop by real categories"
-            body="Categories are loaded from the API. Empty states stay honest instead of being filled with dummy content."
+            body="Browse the categories currently available across the marketplace."
             actionHref="/products"
             actionLabel="Open catalog"
             inverted
@@ -160,7 +160,7 @@ export default async function HomePage() {
           <SectionHeading
             eyebrow="New in"
             title="Latest approved products"
-            body="New arrivals are pulled from the same product API used by the catalog page."
+            body="Fresh listings from approved sellers across the marketplace."
             actionHref="/products?sort=newest"
             actionLabel="See newest"
           />
@@ -243,7 +243,7 @@ function SectionHeading({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className={inverted ? "text-xs font-black uppercase tracking-widest text-cyan-200" : "text-xs font-black uppercase tracking-widest text-rose-600"}>{eyebrow}</p>
-        <h2 className={inverted ? "mt-2 text-3xl font-black tracking-tight text-white sm:text-5xl" : "mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl"}>{title}</h2>
+        <h2 className={inverted ? "mt-2 text-2xl font-black tracking-tight text-white sm:text-4xl" : "mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-4xl"}>{title}</h2>
         <p className={inverted ? "mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-slate-300" : "mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-slate-500"}>{body}</p>
       </div>
       <Link className={inverted ? "inline-flex items-center gap-2 text-sm font-black text-cyan-200 transition hover:text-white" : "inline-flex items-center gap-2 text-sm font-black text-slate-500 transition hover:text-slate-950"} href={actionHref}>
@@ -304,7 +304,7 @@ function LiveMetric({ Icon, label, value, tone }: { Icon: typeof ShoppingBag; la
       <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${toneClass}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <p className="mt-3 text-3xl font-black text-white">{value}</p>
+      <p className="mt-3 text-2xl font-black text-white">{value}</p>
       <p className="text-xs font-black uppercase tracking-wide text-slate-300">{label}</p>
     </div>
   );
