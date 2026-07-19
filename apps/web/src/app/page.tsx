@@ -37,7 +37,7 @@ export default async function HomePage() {
   const hasLoadError = featuredResult.status === "rejected" || newestResult.status === "rejected" || categoriesResult.status === "rejected";
 
   return (
-    <main className="min-h-screen bg-[#f6f3ff] text-slate-950">
+    <main className="min-h-screen bg-[#f6f3ff] text-slate-950 dark:bg-slate-950">
       <MarketplaceHeader active="home" />
 
       <section className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 text-white">
@@ -155,7 +155,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_400px] lg:px-8">
+      <section className="bg-[#f6f3ff] py-10 dark:bg-slate-950 sm:py-14">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:px-8">
         <div>
           <SectionHeading
             eyebrow="New in"
@@ -175,7 +176,7 @@ export default async function HomePage() {
           )}
         </div>
 
-        <aside className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl">
+        <aside className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
           <img
             alt="Seller studio workspace"
             className="h-48 w-full object-cover saturate-125"
@@ -183,37 +184,38 @@ export default async function HomePage() {
           />
           <div className="p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
                 <BadgeCheck className="h-6 w-6" />
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-rose-600">Live sellers</p>
-                <h2 className="text-xl font-black text-slate-950">Stores with visible products</h2>
+                <h2 className="text-xl font-black text-slate-950 dark:text-white">Stores with visible products</h2>
               </div>
             </div>
 
             {uniqueStores.length ? (
               <div className="mt-6 space-y-3">
                 {uniqueStores.slice(0, 6).map((store) => (
-                  <Link key={store.slug} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-300 hover:bg-cyan-50" href={`/products?storeSlug=${store.slug}`}>
+                  <Link key={store.slug} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-300 hover:bg-cyan-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-cyan-400/70 dark:hover:bg-slate-800/80" href={`/products?storeSlug=${store.slug}`}>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-950">{store.name}</p>
-                      <p className="text-xs font-bold text-slate-500">{store.productCount} visible product{store.productCount === 1 ? "" : "s"}</p>
+                      <p className="truncate text-sm font-black text-slate-950 dark:text-white">{store.name}</p>
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-300">{store.productCount} visible product{store.productCount === 1 ? "" : "s"}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                    <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400 dark:text-slate-300" />
                   </Link>
                 ))}
               </div>
             ) : (
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm font-bold leading-relaxed text-slate-500">
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm font-bold leading-relaxed text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 Seller spotlights will appear after approved products exist in the catalog.
               </div>
             )}
           </div>
         </aside>
+        </div>
       </section>
 
-      <section className="bg-white py-16 text-slate-950">
+      <section className="bg-white py-16 text-slate-950 dark:bg-slate-950 dark:text-white">
         <div className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
           <TrustCard Icon={Shield} title="Approved listings only" body="Public products must pass admin moderation before buyers can see them." tone="cyan" />
           <TrustCard Icon={Truck} title="Order tracking" body="Buyer and seller dashboards read real order state from the API." tone="amber" />
@@ -314,24 +316,24 @@ function TrustCard({ Icon, title, body, tone }: { Icon: typeof Shield; title: st
   const toneClass = tone === "cyan" ? "bg-cyan-100 text-cyan-700" : tone === "rose" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700";
 
   return (
-    <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+    <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
       <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneClass}`}>
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className="mt-5 text-lg font-black">{title}</h3>
-      <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-500">{body}</p>
+      <h3 className="mt-5 text-lg font-black text-slate-950 dark:text-white">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">{body}</p>
     </div>
   );
 }
 
 function EmptyState({ title, body, dark = false }: { title: string; body: string; dark?: boolean }) {
   return (
-    <div className={dark ? "mt-8 rounded-[1.75rem] border border-white/10 bg-white/10 p-10 text-center backdrop-blur" : "mt-8 rounded-[1.75rem] border border-slate-200 bg-white p-10 text-center shadow-sm"}>
+    <div className={dark ? "mt-8 rounded-[1.75rem] border border-white/10 bg-white/10 p-10 text-center backdrop-blur" : "mt-8 rounded-[1.75rem] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none"}>
       <div className={dark ? "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10" : "mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100"}>
         <Package className={dark ? "h-7 w-7 text-cyan-200" : "h-7 w-7 text-slate-400"} />
       </div>
-      <h3 className={dark ? "mt-4 text-lg font-black text-white" : "mt-4 text-lg font-black text-slate-950"}>{title}</h3>
-      <p className={dark ? "mx-auto mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-300" : "mx-auto mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-500"}>{body}</p>
+      <h3 className={dark ? "mt-4 text-lg font-black text-white" : "mt-4 text-lg font-black text-slate-950 dark:text-white"}>{title}</h3>
+      <p className={dark ? "mx-auto mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-300" : "mx-auto mt-2 max-w-md text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300"}>{body}</p>
     </div>
   );
 }
