@@ -221,7 +221,7 @@ export function ProtectedDashboardLayout({
               aria-controls={MAIN_SIDE_MENU_ID}
               aria-expanded={sideMenuOpen}
               aria-label={sideMenuOpen ? "Close main side menu" : "Open main side menu"}
-              className="relative z-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 shadow-sm transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              className="relative z-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 shadow-sm transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-offset-2"
               onClick={() => setSideMenuOpen((open) => !open)}
               type="button"
             >
@@ -264,7 +264,7 @@ export function ProtectedDashboardLayout({
               >
                 <Bell className="h-5 w-5 text-stone-600" />
                 {unreadNotifications > 0 ? (
-                  <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-cyan-400 ring-2 ring-white" />
                 ) : null}
               </Link>
             ) : null}
@@ -284,7 +284,7 @@ export function ProtectedDashboardLayout({
             children
           ) : (
             <section className="mx-auto max-w-2xl rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-              <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-600">
+              <p className="text-xs font-extrabold uppercase tracking-widest text-fuchsia-600">
                 Admin only
               </p>
               <h2 className="mt-2 text-2xl font-extrabold text-stone-900">

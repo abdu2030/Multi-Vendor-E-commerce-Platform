@@ -48,7 +48,7 @@ export function MainSideMenu({
       <div className="flex h-full w-64 min-w-64 flex-col">
         <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
           <Link className="flex items-center gap-2.5" href="/dashboard" tabIndex={hiddenTabIndex}>
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-600">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-fuchsia-600">
               <Package className="h-4 w-4 text-white" />
             </span>
             <span>
@@ -94,7 +94,7 @@ export function MainSideMenu({
                   </span>
                 </span>
                 {href === "/dashboard/notifications" && unreadNotifications > 0 ? (
-                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-extrabold text-white">
+                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-cyan-400 px-2 py-1 text-[10px] font-extrabold text-white">
                     {unreadNotifications > 99 ? "99+" : unreadNotifications}
                   </span>
                 ) : null}
@@ -105,7 +105,7 @@ export function MainSideMenu({
 
         <div className="border-t border-white/10 px-3 py-4">
           <div className="flex items-center gap-3 rounded-xl px-3.5 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-extrabold text-white">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-amber-300 text-sm font-extrabold text-white">
               {initials(user.fullName)}
             </div>
             <div className="min-w-0 flex-1">

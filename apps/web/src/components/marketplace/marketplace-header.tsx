@@ -13,13 +13,13 @@ export function MarketplaceHeader({
   const { user, isLoading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-white/60 bg-white/85 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link className="flex items-center gap-2.5" href="/">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-amber-300 text-white shadow-lg shadow-fuchsia-500/20">
             <Package className="h-4 w-4" />
           </span>
-          <span className="text-lg font-extrabold tracking-tight text-stone-950">
+          <span className="text-lg font-black tracking-tight text-slate-950">
             Marketo
           </span>
         </Link>
@@ -34,19 +34,19 @@ export function MarketplaceHeader({
             Cart
           </Link>
           {isLoading ? (
-            <span className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-stone-400">
+            <span className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-400">
               Checking...
             </span>
           ) : user ? (
             <Link
-              className="max-w-[220px] truncate rounded-xl bg-stone-950 px-4 py-2 text-white transition hover:bg-stone-700"
+              className="max-w-[220px] truncate rounded-xl bg-slate-950 px-4 py-2 text-white shadow-lg shadow-slate-900/10 transition hover:bg-fuchsia-700"
               href="/dashboard"
             >
               {user.email}
             </Link>
           ) : (
             <Link
-              className="rounded-xl bg-stone-950 px-4 py-2 text-white transition hover:bg-stone-700"
+              className="rounded-xl bg-slate-950 px-4 py-2 text-white shadow-lg shadow-slate-900/10 transition hover:bg-fuchsia-700"
               href="/login"
             >
               Sign in
@@ -61,6 +61,6 @@ export function MarketplaceHeader({
 
 function navClass(isActive: boolean) {
   return isActive
-    ? "text-emerald-700"
-    : "text-stone-500 transition hover:text-stone-950";
+    ? "text-fuchsia-700"
+    : "text-slate-500 transition hover:text-slate-950";
 }
