@@ -93,10 +93,10 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-14 sm:py-20">
-        <div className="absolute inset-y-0 left-0 w-1/2 bg-cyan-100/55" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.88fr)_minmax(360px,1fr)] lg:px-8">
-          <div className="self-center">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-slate-50 py-10 dark:border-slate-800 dark:bg-slate-950 sm:py-12">
+        <div className="absolute inset-y-0 left-0 w-full bg-[radial-gradient(circle_at_16%_28%,rgba(34,211,238,0.18),transparent_36%)] dark:bg-[radial-gradient(circle_at_16%_28%,rgba(217,70,239,0.18),transparent_36%)]" />
+        <div className="relative mx-auto grid max-w-7xl items-start gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(240px,0.62fr)_minmax(0,1.38fr)] lg:px-8">
+          <div className="max-w-sm lg:sticky lg:top-24">
             <SectionHeading
               eyebrow="Live catalog"
               title="Featured approved products"
@@ -107,9 +107,9 @@ export default async function HomePage() {
           </div>
 
           {featured.items.length ? (
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {featured.items.slice(0, 4).map((product) => (
-                <LiveProductCard key={product.id} product={product} />
+                <LiveProductCard key={product.id} product={product} compact />
               ))}
             </div>
           ) : (
@@ -240,13 +240,13 @@ function SectionHeading({
   inverted?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex min-w-0 flex-col gap-4">
       <div>
         <p className={inverted ? "text-xs font-black uppercase tracking-widest text-cyan-200" : "text-xs font-black uppercase tracking-widest text-rose-600"}>{eyebrow}</p>
-        <h2 className={inverted ? "mt-2 text-2xl font-black tracking-tight text-white sm:text-4xl" : "mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-4xl"}>{title}</h2>
-        <p className={inverted ? "mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-slate-300" : "mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-slate-500"}>{body}</p>
+        <h2 className={inverted ? "mt-2 text-2xl font-black tracking-tight text-white sm:text-4xl" : "mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl"}>{title}</h2>
+        <p className={inverted ? "mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-slate-300" : "mt-3 max-w-xl text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300"}>{body}</p>
       </div>
-      <Link className={inverted ? "inline-flex items-center gap-2 text-sm font-black text-cyan-200 transition hover:text-white" : "inline-flex items-center gap-2 text-sm font-black text-slate-500 transition hover:text-slate-950"} href={actionHref}>
+      <Link className={inverted ? "inline-flex shrink-0 items-center gap-2 text-sm font-black text-cyan-200 transition hover:text-white" : "inline-flex shrink-0 items-center gap-2 text-sm font-black text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"} href={actionHref}>
         {actionLabel}
         <ArrowRight className="h-4 w-4" />
       </Link>
@@ -256,25 +256,25 @@ function SectionHeading({
 
 function LiveProductCard({ product, compact = false }: { product: PublicProduct; compact?: boolean }) {
   return (
-    <Link className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-2xl" href={`/products/${product.slug}`}>
-      <div className={`relative bg-slate-100 ${compact ? "aspect-[5/3]" : "aspect-square"}`}>
+    <Link className="group overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm shadow-slate-200/60 transition hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:shadow-none" href={`/products/${product.slug}`}>
+      <div className={`relative bg-slate-100 dark:bg-slate-800 ${compact ? "aspect-[5/3]" : "aspect-[4/3]"}`}>
         <ProductThumb product={product} />
-        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-black text-rose-700 shadow-sm">{product.category.name}</span>
+        <span className="absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-white/95 px-3 py-1 text-[11px] font-black text-rose-700 shadow-sm dark:bg-slate-950/90 dark:text-rose-300">{product.category.name}</span>
       </div>
       <div className="p-4">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+        <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-300">
           <BadgeCheck className="h-3.5 w-3.5 text-cyan-500" />
           {product.store.name}
         </div>
-        <h3 className="mt-2 line-clamp-2 min-h-11 text-base font-black leading-snug text-slate-950">{product.title}</h3>
+        <h3 className="mt-2 line-clamp-2 min-h-10 text-sm font-black leading-snug text-slate-950 dark:text-white sm:text-base">{product.title}</h3>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-lg font-black text-fuchsia-700">{formatMoney(product.priceCents, product.currency)}</span>
-          <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+          <span className="min-w-0 text-base font-black text-fuchsia-700 dark:text-fuchsia-300 sm:text-lg">{formatMoney(product.priceCents, product.currency)}</span>
+          <span className="flex flex-shrink-0 items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-300">
             <Star className="h-3.5 w-3.5" />
             {product.averageRating.toFixed(1)}
           </span>
         </div>
-        <p className="mt-2 text-xs font-bold text-slate-400">
+        <p className="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">
           {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : "Out of stock"} | {product.reviewCount} review{product.reviewCount === 1 ? "" : "s"}
         </p>
       </div>
@@ -287,7 +287,7 @@ function ProductThumb({ product, size = "full" }: { product: PublicProduct; size
 
   if (!product.image) {
     return (
-      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-300`}>
+      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-500`}>
         <Package className={size === "sm" ? "h-6 w-6" : "h-10 w-10"} />
       </div>
     );
