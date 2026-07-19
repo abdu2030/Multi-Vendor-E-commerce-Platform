@@ -9,7 +9,6 @@ import {
   Bell,
   FileText,
   LayoutDashboard,
-  LogOut,
   Menu,
   CreditCard,
   Package,
@@ -22,20 +21,15 @@ import {
   Users,
   X,
 } from "@/components/imported/design-icons";
-import { AuthUser } from "@/lib/auth";
 import { getUnreadNotificationCount, NOTIFICATIONS_UPDATED_EVENT } from "@/lib/notifications";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { MainSideMenu } from "./main-side-menu";
+import type { MainSideMenuNavigationItem } from "./main-side-menu";
 import { useAuth } from "./auth-provider";
 
-type NavigationItem = {
-  href: string;
-  label: string;
-  description: string;
-  Icon: React.FC<{ className?: string }>;
-  roles?: AuthUser["role"][];
-};
+const MAIN_SIDE_MENU_ID = "main-dashboard-side-menu";
 
-const navigation: NavigationItem[] = [
+const navigation: MainSideMenuNavigationItem[] = [
   {
     href: "/dashboard",
     label: "Workspace",
@@ -136,7 +130,7 @@ export function ProtectedDashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, accessToken, isLoading, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const canSeeNotifications = Boolean(
@@ -156,6 +150,10 @@ export function ProtectedDashboardLayout({
       setUnreadNotifications(0);
     }
   }, [accessToken, canSeeNotifications]);
+
+  useEffect(() => {
+    setSideMenuOpen(window.matchMedia("(min-width: 1024px)").matches);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -204,119 +202,51 @@ export function ProtectedDashboardLayout({
         fontFamily: '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
       }}
     >
-      {sidebarOpen ? (
-        <button
-          aria-label="Close sidebar overlay"
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          type="button"
-        />
-      ) : null}
+      <MainSideMenu
+        id={MAIN_SIDE_MENU_ID}
+        isOpen={sideMenuOpen}
+        navigation={visibleNavigation}
+        onSignOut={() => {
+          void signOut().finally(() => router.replace("/login"));
+        }}
+        pathname={pathname}
+        unreadNotifications={unreadNotifications}
+        user={user}
+      />
 
-      <aside
-        className={`dashboard-sidebar-shell fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-shrink-0 flex-col bg-stone-900 transition-transform duration-200 lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
-          <Link className="flex items-center gap-2.5" href="/dashboard">
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-600">
-              <Package className="h-4 w-4 text-white" />
-            </span>
-            <span>
-              <span className="block text-base font-extrabold leading-none text-white">
-                Marketo
-              </span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-stone-400">
-                Marketplace workspace
-              </span>
-            </span>
-          </Link>
-        </div>
-
-        <nav
-          aria-label="Dashboard navigation"
-          className="dashboard-sidebar-scrollbar flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
-        >
-          {visibleNavigation.map(({ href, label, description, Icon }) => {
-            const active =
-              href === "/dashboard"
-                ? pathname === href
-                : pathname === href || pathname.startsWith(`${href}/`);
-
-            return (
-              <Link
-                className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
-                  active
-                    ? "bg-white/10 text-white"
-                    : "text-stone-400 hover:bg-white/5 hover:text-white"
-                }`}
-                href={href}
-                key={href}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                <span className="min-w-0">
-                  <span className="block text-sm font-bold leading-tight">
-                    {label}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[10px] font-semibold text-stone-500 group-hover:text-stone-400">
-                    {description}
-                  </span>
-                </span>
-                {href === "/dashboard/notifications" && unreadNotifications > 0 ? (
-                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-500 px-2 py-1 text-[10px] font-extrabold text-white">
-                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="border-t border-white/10 px-3 py-4">
-          <div className="flex items-center gap-3 rounded-xl px-3.5 py-2.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-extrabold text-white">
-              {initials(user.fullName)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold text-white">
-                {user.fullName}
-              </p>
-              <p className="truncate text-[10px] font-semibold text-stone-500">
-                {user.email}
-              </p>
-            </div>
-            <button
-              aria-label="Sign out"
-              className="rounded-lg p-2 text-stone-500 transition-colors hover:bg-white/5 hover:text-white"
-              onClick={() => {
-                void signOut().finally(() => router.replace("/login"));
-              }}
-              type="button"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden transition-[margin,width] duration-300 ease-out">
         <header className="flex flex-shrink-0 items-center justify-between border-b border-stone-200 bg-white px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              aria-label="Open sidebar"
-              className="rounded-xl p-2 transition-colors hover:bg-stone-100 lg:hidden"
-              onClick={() => setSidebarOpen(true)}
+              aria-controls={MAIN_SIDE_MENU_ID}
+              aria-expanded={sideMenuOpen}
+              aria-label={sideMenuOpen ? "Close main side menu" : "Open main side menu"}
+              className="relative z-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 shadow-sm transition-colors hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              onClick={() => setSideMenuOpen((open) => !open)}
               type="button"
             >
-              <Menu className="h-5 w-5 text-stone-600" />
+              <span className="relative block h-5 w-5" aria-hidden="true">
+                <Menu
+                  className={`absolute inset-0 h-5 w-5 transition-all duration-200 ease-out ${
+                    sideMenuOpen
+                      ? "rotate-90 scale-75 opacity-0"
+                      : "rotate-0 scale-100 opacity-100"
+                  }`}
+                />
+                <X
+                  className={`absolute inset-0 h-5 w-5 transition-all duration-200 ease-out ${
+                    sideMenuOpen
+                      ? "rotate-0 scale-100 opacity-100"
+                      : "-rotate-90 scale-75 opacity-0"
+                  }`}
+                />
+              </span>
             </button>
-            <div>
-              <h1 className="text-lg font-extrabold text-stone-900">
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-extrabold text-stone-900">
                 {pageTitle(pathname)}
               </h1>
-              <p className="text-xs font-semibold text-stone-400">
+              <p className="truncate text-xs font-semibold text-stone-400">
                 {user.role.replace("_", " ").toLowerCase()} account
               </p>
             </div>
@@ -346,13 +276,6 @@ export function ProtectedDashboardLayout({
             >
               <Settings className="h-5 w-5 text-stone-600" />
             </Link>
-            <button
-              aria-label="Close menu"
-              className="hidden rounded-xl p-2 text-stone-400"
-              type="button"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
         </header>
 
@@ -376,16 +299,6 @@ export function ProtectedDashboardLayout({
       </div>
     </div>
   );
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 }
 
 function pageTitle(pathname: string) {
