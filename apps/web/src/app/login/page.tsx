@@ -76,9 +76,9 @@ export default function LoginPage() {
 
           <div className="relative z-10 grid gap-3">
             {[
-              ["Secure session", "JWT access and refresh token flow"],
-              ["Verified sellers", "Approval workflow and audit trail"],
-              ["Admin ready", "Seller review tools and moderation views"],
+              ["Protected account", "Your account stays private while you shop or manage your store."],
+              ["Verified sellers", "Shop from approved stores and trusted marketplace partners."],
+              ["Marketplace tools", "Manage orders, listings, and account activity in one place."],
             ].map(([title, body]) => (
               <div
                 key={title}
@@ -169,8 +169,7 @@ export default function LoginPage() {
             <div className="mt-6 flex items-start gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
               <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" />
               <p>
-                Keep the API server running on port 5000 while signing in
-                locally.
+                Use the email and password you chose when creating your account.
               </p>
             </div>
 
