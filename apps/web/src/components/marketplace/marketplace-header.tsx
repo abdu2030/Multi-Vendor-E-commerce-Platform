@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package } from "@/components/imported/design-icons";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -16,12 +16,7 @@ export function MarketplaceHeader({
     <header className="sticky top-0 z-30 border-b border-white/60 bg-white/85 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link className="flex items-center gap-2.5" href="/">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-amber-300 text-white shadow-lg shadow-fuchsia-500/20">
-            <Package className="h-4 w-4" />
-          </span>
-          <span className="text-lg font-black tracking-tight text-slate-950">
-            Marketo
-          </span>
+          <BrandLogo />
         </Link>
         <nav className="flex items-center gap-3 text-sm font-bold sm:gap-4">
           <Link className={navClass(active === "home")} href="/">

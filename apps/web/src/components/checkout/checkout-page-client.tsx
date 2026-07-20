@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -9,7 +10,6 @@ import {
   CheckCircle,
   CreditCard,
   MapPin,
-  Package,
   RefreshCw,
   Shield,
   ShoppingBag,
@@ -377,10 +377,7 @@ function CheckoutShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-2.5" href="/">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
-              <Package className="h-4 w-4" />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight text-stone-950">Marketo</span>
+            <BrandLogo />
           </Link>
           <nav className="flex items-center gap-4 text-sm font-bold">
             <Link className="text-stone-500 transition hover:text-stone-950" href="/products">Products</Link>

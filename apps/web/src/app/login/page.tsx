@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   ArrowRight,
   BadgeCheck,
-  Package,
   Shield,
 } from "@/components/imported/design-icons";
 
@@ -54,10 +54,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 -z-10 bg-stone-950/75" />
           <div className="relative z-10">
             <Link className="flex items-center gap-2" href="/">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600">
-                <Package className="h-4 w-4" />
-              </span>
-              <span className="font-extrabold">Marketo</span>
+              <BrandLogo textClassName="text-white" />
             </Link>
           </div>
 
@@ -98,10 +95,7 @@ export default function LoginPage() {
           <div className="w-full min-w-0">
             <div className="mb-8 lg:hidden">
               <Link className="flex items-center gap-2" href="/">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                  <Package className="h-4 w-4" />
-                </span>
-                <span className="font-extrabold">Marketo</span>
+                <BrandLogo />
               </Link>
             </div>
 

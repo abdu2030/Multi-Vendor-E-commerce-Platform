@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle, Package, ShoppingBag } from "@/components/imported/design-icons";
+import { ArrowRight, CheckCircle, ShoppingBag } from "@/components/imported/design-icons";
 
 export function CheckoutSuccessClient() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -17,10 +18,7 @@ export function CheckoutSuccessClient() {
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-2.5" href="/">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
-              <Package className="h-4 w-4" />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight text-stone-950">Marketo</span>
+            <BrandLogo />
           </Link>
           <Link className="rounded-xl bg-stone-950 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-stone-700" href="/products">
             Products

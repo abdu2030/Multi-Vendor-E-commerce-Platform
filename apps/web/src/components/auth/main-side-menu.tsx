@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { FC } from "react";
-import { LogOut, Package } from "@/components/imported/design-icons";
+import { BrandLogo } from "@/components/brand/brand-logo";
+import { LogOut } from "@/components/imported/design-icons";
 import type { AuthUser } from "@/lib/auth";
 
 export type MainSideMenuNavigationItem = {
@@ -48,17 +49,7 @@ export function MainSideMenu({
       <div className="flex h-full w-64 min-w-64 flex-col">
         <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
           <Link className="flex items-center gap-2.5" href="/dashboard" tabIndex={hiddenTabIndex}>
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-fuchsia-600">
-              <Package className="h-4 w-4 text-white" />
-            </span>
-            <span>
-              <span className="block text-base font-extrabold leading-none text-white">
-                Marketo
-              </span>
-              <span className="mt-0.5 block text-[10px] font-semibold text-stone-400">
-                Marketplace workspace
-              </span>
-            </span>
+            <BrandLogo markClassName="h-8 w-8" subtitle="Marketplace workspace" subtitleClassName="text-stone-400" textClassName="text-white" />
           </Link>
         </div>
 
